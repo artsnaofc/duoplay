@@ -113,103 +113,44 @@ export async function getMatchSnapshot<TState = unknown>(
   }
 
   try {
-    // 1. Tentar carregar via RPC segura com autorização estrita e sanitização de mãos e peças ocultas
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('get_match_snapshot_for_player', {
-        p_match_id: matchId,
-      });
+    // Consulta exclusivamente via RPC autoritativa com verificação estrita de autenticação,
+    // pertencimento à partida e sanitização de dados privados (mãos adversárias e monte).
+    // Jamais consulta diretamente a tabela 'matches' para evitar qualquer exposição de estado privado.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('get_match_snapshot_for_player', {
+      p_match_id: matchId,
+    });
 
-      if (rpcErr) {
-        const errCode = (rpcErr as any)?.code;
-        const errMsg = String((rpcErr as any)?.message || '');
-        // Se for erro explícito de autorização ou partida inexistente, propaga imediatamente sem fallback
-        if (
-          errCode === 'P0001' ||
-          errCode === 'P0003' ||
-          errCode === 'P0016' ||
-          errMsg.includes('UNAUTHORIZED') ||
-          errMsg.includes('FORBIDDEN') ||
-          errMsg.includes('MATCH_NOT_FOUND')
-        ) {
-          throw normalizeNetworkError({
-            code: errCode === 'P0001' ? 'UNAUTHORIZED' : errCode === 'P0003' ? 'FORBIDDEN' : 'MATCH_NOT_FOUND',
-            message: errMsg || 'Acesso não autorizado aos dados da partida.',
-            category: 'rule',
-          });
-        }
-      }
-
-      if (!rpcErr && rpcRes && rpcRes.success && rpcRes.data) {
-        return mapDatabaseToGameSnapshot<TState>(
-          rpcRes.data as unknown as MatchRow & { match_players: MatchPlayerRow[] }
-        );
-      }
-    } catch (innerErr: any) {
+    if (rpcErr) {
+      const errCode = (rpcErr as any)?.code;
+      const errMsg = String((rpcErr as any)?.message || '');
       if (
-        innerErr?.code === 'UNAUTHORIZED' ||
-        innerErr?.code === 'FORBIDDEN' ||
-        innerErr?.code === 'MATCH_NOT_FOUND' ||
-        innerErr?.code === 'P0001' ||
-        innerErr?.code === 'P0003' ||
-        innerErr?.code === 'P0016'
+        errCode === 'P0001' ||
+        errCode === 'P0003' ||
+        errCode === 'P0016' ||
+        errMsg.includes('UNAUTHORIZED') ||
+        errMsg.includes('FORBIDDEN') ||
+        errMsg.includes('MATCH_NOT_FOUND')
       ) {
-        throw innerErr;
+        throw normalizeNetworkError({
+          code: errCode === 'P0001' ? 'UNAUTHORIZED' : errCode === 'P0003' ? 'FORBIDDEN' : 'MATCH_NOT_FOUND',
+          message: errMsg || 'Acesso não autorizado aos dados da partida.',
+          category: 'rule',
+        });
       }
-      // Outros erros transitórios ou ausência da RPC em ambientes locais continuam para fallback
+      throw normalizeNetworkError(rpcErr);
     }
 
-    // 2. Consulta direta de fallback na tabela matches
-    const { data, error } = await supabase
-      .from('matches')
-      .select(`
-        id,
-        room_id,
-        game_id,
-        status,
-        current_turn_player_id,
-        turn_deadline,
-        turn_number,
-        game_state,
-        action_history,
-        winner_id,
-        is_draw,
-        finish_reason,
-        created_at,
-        started_at,
-        finished_at,
-        match_players (
-          id,
-          match_id,
-          user_id,
-          slot,
-          game_symbol,
-          score,
-          is_winner,
-          disconnected_at,
-          grace_period_expires_at,
-          last_seen_at,
-          connection_status,
-          joined_at
-        )
-      `)
-      .eq('id', matchId)
-      .maybeSingle();
-
-    if (error) {
-      throw normalizeNetworkError(error);
-    }
-
-    if (!data) {
+    if (!rpcRes || !rpcRes.success || !rpcRes.data) {
       throw normalizeNetworkError({
         code: 'MATCH_NOT_FOUND',
-        message: 'Partida não encontrada ou sem permissão de visualização.',
-        category: 'infrastructure',
+        message: rpcRes?.error || 'Partida não encontrada ou sem permissão de visualização.',
+        category: 'rule',
       });
     }
 
     return mapDatabaseToGameSnapshot<TState>(
-      data as unknown as MatchRow & { match_players: MatchPlayerRow[] }
+      rpcRes.data as unknown as MatchRow & { match_players: MatchPlayerRow[] }
     );
   } catch (err) {
     throw normalizeNetworkError(err);

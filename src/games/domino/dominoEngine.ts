@@ -324,6 +324,11 @@ export function resolveBlockedRoundWinner(
     sums[pid] = sumTilePips(hands[pid] || []);
   }
 
+  // Caso Regra de Trancamento seja Empate direto
+  if (config.blockRule === 'draw') {
+    return { winnerId: null, isDraw: true, sums };
+  }
+
   // Caso Duplas 2v2 (P1 & P3 vs P2 & P4)
   if (config.teamMode === 'teams_2v2' && turnOrder.length === 4) {
     const teamASum = (sums[turnOrder[0]] || 0) + (sums[turnOrder[2]] || 0);
@@ -342,17 +347,31 @@ export function resolveBlockedRoundWinner(
 
   // Caso Individual (2, 3 ou 4 jogadores)
   let lowestSum = Infinity;
+  let lowestCount = Infinity;
   let winnerId: string | null = null;
   let tie = false;
 
   for (const pid of turnOrder) {
     const pSum = sums[pid];
-    if (pSum < lowestSum) {
-      lowestSum = pSum;
-      winnerId = pid;
-      tie = false;
-    } else if (pSum === lowestSum) {
-      tie = true;
+    const pCount = (hands[pid] || []).length;
+
+    if (config.blockRule === 'lowest_tile_count') {
+      if (pCount < lowestCount || (pCount === lowestCount && pSum < lowestSum)) {
+        lowestCount = pCount;
+        lowestSum = pSum;
+        winnerId = pid;
+        tie = false;
+      } else if (pCount === lowestCount && pSum === lowestSum) {
+        tie = true;
+      }
+    } else {
+      if (pSum < lowestSum) {
+        lowestSum = pSum;
+        winnerId = pid;
+        tie = false;
+      } else if (pSum === lowestSum) {
+        tie = true;
+      }
     }
   }
 

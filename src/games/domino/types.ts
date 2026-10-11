@@ -12,7 +12,7 @@ export type DrawRule = 'open' | 'one_tile' | 'custom_limit' | 'no_draw';
 
 export type StartRule = 'random' | 'highest_double' | 'highest_tile' | 'host';
 
-export type BlockRule = 'lowest_pip_count' | 'draw' | 'round_winner';
+export type BlockRule = 'lowest_pip_count' | 'draw' | 'lowest_tile_count' | 'round_winner';
 
 export type ScoringMode = 'single_round' | 'target_score';
 

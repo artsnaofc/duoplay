@@ -900,7 +900,9 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                             className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
                           >
                             <option value="individual">Individual (Todos contra todos)</option>
-                            <option value="teams_2v2">Duplas 2v2 (P1 & P3 vs P2 & P4)</option>
+                            <option value="teams_2v2" disabled={currentRoom.max_members !== 4}>
+                              Duplas 2v2 {currentRoom.max_members !== 4 ? '(Apenas para 4 jogadores)' : '(P1 & P3 vs P2 & P4)'}
+                            </option>
                           </select>
                         ) : (
                           <span className="font-extrabold text-white">
@@ -1026,6 +1028,26 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                         )}
                       </div>
 
+                      {/* 5.1 Passagem de Turno */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Passagem de Turno:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-auto-pass"
+                            value={String((currentRoom.config as any)?.auto_pass ?? true)}
+                            onChange={(e) => handleUpdateRule('auto_pass', e.target.value === 'true')}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value="true">Automática (sem jogadas/compras)</option>
+                            <option value="false">Manual (clique do jogador)</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            {((currentRoom.config as any)?.auto_pass ?? true) ? 'Automática' : 'Manual'}
+                          </span>
+                        )}
+                      </div>
+
                       {/* 6. Início da Partida */}
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-slate-400">Início da Partida:</span>
@@ -1090,6 +1112,31 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                           </select>
                         </div>
                       )}
+
+                      {/* 7.2 Regra de Trancamento (Bloqueio) */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Ao Trancar Jogo:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-block-rule"
+                            value={(currentRoom.config as any)?.block_rule ?? 'lowest_pip_count'}
+                            onChange={(e) => handleUpdateRule('block_rule', e.target.value)}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value="lowest_pip_count">Menor soma de pontos ganha</option>
+                            <option value="lowest_tile_count">Menos peças restantes ganha</option>
+                            <option value="draw">Empate direto</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            {(currentRoom.config as any)?.block_rule === 'draw'
+                              ? 'Empate direto'
+                              : (currentRoom.config as any)?.block_rule === 'lowest_tile_count'
+                              ? 'Menos peças'
+                              : 'Menor soma'}
+                          </span>
+                        )}
+                      </div>
 
                       {/* 8. Tempo por Turno */}
                       <div className="flex items-center justify-between gap-2">

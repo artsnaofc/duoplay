@@ -457,13 +457,31 @@ export const DominoGame: React.FC<DominoGameProps> = ({
   // Auto-pass se configurado e o jogador não puder jogar nem comprar
   useEffect(() => {
     if (!isMyTurn || submittingAction || isFinished) return;
-    if (config.autoPass && !hasAnyValidPlay && (boneyardCount === 0 || config.drawRule === 'no_draw')) {
+    const drawsThisTurn = state?.drawsThisTurn ?? 0;
+    const canDraw =
+      boneyardCount > 0 &&
+      config.drawRule !== 'no_draw' &&
+      (config.drawRule as string) !== 'block' &&
+      (config.drawRule !== 'one_tile' || drawsThisTurn === 0) &&
+      (config.drawRule !== 'custom_limit' || drawsThisTurn < config.maxDrawsPerTurn);
+
+    if (config.autoPass && !hasAnyValidPlay && !canDraw) {
       const timer = setTimeout(() => {
         handlePassTurn();
       }, 1200);
       return () => clearTimeout(timer);
     }
-  }, [isMyTurn, submittingAction, isFinished, config.autoPass, hasAnyValidPlay, boneyardCount, config.drawRule]);
+  }, [
+    isMyTurn,
+    submittingAction,
+    isFinished,
+    config.autoPass,
+    hasAnyValidPlay,
+    boneyardCount,
+    config.drawRule,
+    config.maxDrawsPerTurn,
+    state?.drawsThisTurn,
+  ]);
 
   // Loading inicial
   if (isLoading || !snapshot) {
@@ -728,7 +746,9 @@ export const DominoGame: React.FC<DominoGameProps> = ({
                 boneyardCount <= 0 ||
                 config.drawRule === 'no_draw' ||
                 (config.drawRule as string) === 'block' ||
-                hasAnyValidPlay
+                hasAnyValidPlay ||
+                (config.drawRule === 'one_tile' && (state?.drawsThisTurn ?? 0) >= 1) ||
+                (config.drawRule === 'custom_limit' && (state?.drawsThisTurn ?? 0) >= config.maxDrawsPerTurn)
               }
               className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-750 text-white font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
               title={
@@ -736,8 +756,12 @@ export const DominoGame: React.FC<DominoGameProps> = ({
                   ? 'Você já possui peças válidas na mão'
                   : boneyardCount <= 0
                   ? 'Monte vazio'
-                  : config.drawRule === 'no_draw'
+                  : config.drawRule === 'no_draw' || (config.drawRule as string) === 'block'
                   ? 'Compra não permitida'
+                  : (config.drawRule === 'one_tile' && (state?.drawsThisTurn ?? 0) >= 1)
+                  ? 'Limite de 1 compra atingido'
+                  : (config.drawRule === 'custom_limit' && (state?.drawsThisTurn ?? 0) >= config.maxDrawsPerTurn)
+                  ? 'Limite de compras atingido'
                   : 'Comprar peça do monte'
               }
             >
@@ -755,14 +779,20 @@ export const DominoGame: React.FC<DominoGameProps> = ({
                 !isMyTurn ||
                 submittingAction ||
                 hasAnyValidPlay ||
-                (boneyardCount > 0 && config.drawRule === 'open')
+                (boneyardCount > 0 && config.drawRule === 'open') ||
+                (boneyardCount > 0 && config.drawRule === 'one_tile' && (state?.drawsThisTurn ?? 0) === 0) ||
+                (boneyardCount > 0 && config.drawRule === 'custom_limit' && (state?.drawsThisTurn ?? 0) < config.maxDrawsPerTurn)
               }
               className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-750 text-white font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
               title={
                 hasAnyValidPlay
                   ? 'Você tem peças válidas para jogar'
-                  : boneyardCount > 0 && config.drawRule === 'open'
+                  : (boneyardCount > 0 && config.drawRule === 'open')
                   ? 'Você deve comprar peças do monte antes de passar'
+                  : (boneyardCount > 0 && config.drawRule === 'one_tile' && (state?.drawsThisTurn ?? 0) === 0)
+                  ? 'Você deve comprar uma peça do monte antes de passar'
+                  : (boneyardCount > 0 && config.drawRule === 'custom_limit' && (state?.drawsThisTurn ?? 0) < config.maxDrawsPerTurn)
+                  ? 'Você deve comprar até o limite antes de passar'
                   : 'Passar a vez para o próximo jogador'
               }
             >
