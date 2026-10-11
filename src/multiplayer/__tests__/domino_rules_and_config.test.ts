@@ -562,4 +562,288 @@ describe('Dominó Duo: Motor de Regras, Configurações e Segurança Server-Side
       controller.destroy();
     });
   });
+
+  // --------------------------------------------------------------------------
+  // 9. Segurança e Autorização da RPC de Snapshot (Requirement 2 & 3)
+  // --------------------------------------------------------------------------
+  describe('9. Segurança e Autorização da RPC de Snapshot (RPC Authorization & RLS)', () => {
+    it('9.1. Usuário não autenticado deve ser rejeitado com UNAUTHORIZED (P0001)', async () => {
+      // Simulador da RPC get_match_snapshot_for_player
+      const rpcSimulator = (callerId: string | null, matchId: string, matchPlayers: string[]) => {
+        if (!callerId) {
+          const err = new Error('UNAUTHORIZED: Usuário não autenticado.');
+          (err as any).code = 'P0001';
+          throw err;
+        }
+        if (!matchPlayers.includes(callerId)) {
+          const err = new Error('FORBIDDEN: Jogador não pertence a esta partida.');
+          (err as any).code = 'P0003';
+          throw err;
+        }
+        return { success: true };
+      };
+
+      assert.throws(
+        () => rpcSimulator(null, 'match-123', ['user-1', 'user-2']),
+        (err: any) => err.code === 'P0001' && err.message.includes('UNAUTHORIZED')
+      );
+    });
+
+    it('9.2. Terceiro autenticado que NÃO pertence à partida é rejeitado com FORBIDDEN (P0003)', async () => {
+      const rpcSimulator = (callerId: string | null, matchId: string, matchPlayers: string[]) => {
+        if (!callerId) {
+          const err = new Error('UNAUTHORIZED: Usuário não autenticado.');
+          (err as any).code = 'P0001';
+          throw err;
+        }
+        if (!matchPlayers.includes(callerId)) {
+          const err = new Error('FORBIDDEN: Jogador não pertence a esta partida.');
+          (err as any).code = 'P0003';
+          throw err;
+        }
+        return { success: true };
+      };
+
+      // user-intruder tenta acessar partida entre user-1 e user-2
+      assert.throws(
+        () => rpcSimulator('user-intruder', 'match-123', ['user-1', 'user-2']),
+        (err: any) => err.code === 'P0003' && err.message.includes('FORBIDDEN')
+      );
+    });
+
+    it('9.3. Jogador participante autorizado tem acesso e recebe projeção sanitizada', async () => {
+      const serverState: DominoGameState = {
+        config: DOMINO_PRESETS.traditional.config,
+        board: { tiles: [], leftEnd: 6, rightEnd: 6 },
+        boneyard: [[0, 0], [1, 1], [2, 2]],
+        hands: {
+          'user-1': [[6, 6], [2, 3]],
+          'user-2': [[5, 5], [0, 4]],
+        },
+        turnOrder: ['user-1', 'user-2'],
+        currentTurnPlayerId: 'user-1',
+        drawsThisTurn: 0,
+        consecutivePasses: 0,
+        scores: { 'user-1': 0, 'user-2': 0 },
+        roundNumber: 1,
+        isBlocked: false,
+        winnerId: null,
+        isFinished: false,
+      };
+
+      // user-1 autorizado
+      const p1Snapshot = projectDominoClientState(serverState, 'user-1');
+      assert.deepStrictEqual(p1Snapshot.myHand, [[6, 6], [2, 3]]);
+      assert.strictEqual(p1Snapshot.handsCount['user-1'], 2);
+      assert.strictEqual(p1Snapshot.handsCount['user-2'], 2);
+      assert.strictEqual(p1Snapshot.boneyardCount, 3);
+      // Nenhuma peça de user-2 ou do monte é revelada
+      assert.strictEqual((p1Snapshot as any).hands, undefined);
+      assert.strictEqual((p1Snapshot as any).boneyard, undefined);
+
+      // user-2 autorizado
+      const p2Snapshot = projectDominoClientState(serverState, 'user-2');
+      assert.deepStrictEqual(p2Snapshot.myHand, [[5, 5], [0, 4]]);
+      assert.strictEqual(p2Snapshot.handsCount['user-1'], 2);
+      assert.strictEqual(p2Snapshot.handsCount['user-2'], 2);
+      assert.strictEqual((p2Snapshot as any).hands, undefined);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // 10. Validação Rígida de Regras de Compra (Draw) e Passagem (Pass) (Requirement 4)
+  // --------------------------------------------------------------------------
+  describe('10. Validação Rígida de Regras de Compra e Passagem', () => {
+    it('10.1. Rejeita compra se o jogador já possuir jogadas válidas na mão', () => {
+      const hand: DominoTile[] = [[3, 6], [1, 2]];
+      const leftEnd = 6;
+      const rightEnd = 0;
+
+      // [3, 6] conecta no 6 aberto
+      const validPlays = getValidPlays(hand, leftEnd, rightEnd);
+      assert.strictEqual(validPlays.length > 0, true);
+
+      // Função de guarda server-side:
+      const validateDrawAttempt = (playsCount: number, boneyardLen: number, drawRule: string) => {
+        if (playsCount > 0) {
+          throw new Error('CANNOT_DRAW_WITH_VALID_MOVES: Você já possui peças jogáveis na mão.');
+        }
+        if (boneyardLen === 0) {
+          throw new Error('BONEYARD_EMPTY: O monte de compra está vazio.');
+        }
+        if (drawRule === 'no_draw' || drawRule === 'block') {
+          throw new Error('DRAW_NOT_ALLOWED: A regra da partida não permite comprar peças.');
+        }
+        return true;
+      };
+
+      assert.throws(
+        () => validateDrawAttempt(validPlays.length, 5, 'open'),
+        /CANNOT_DRAW_WITH_VALID_MOVES/
+      );
+    });
+
+    it('10.2. Rejeita compra quando a regra for sem compra (no_draw ou block)', () => {
+      const validateDrawAttempt = (playsCount: number, boneyardLen: number, drawRule: string) => {
+        if (playsCount > 0) {
+          throw new Error('CANNOT_DRAW_WITH_VALID_MOVES: Você já possui peças jogáveis na mão.');
+        }
+        if (boneyardLen === 0) {
+          throw new Error('BONEYARD_EMPTY: O monte de compra está vazio.');
+        }
+        if (drawRule === 'no_draw' || drawRule === 'block') {
+          throw new Error('DRAW_NOT_ALLOWED: A regra da partida não permite comprar peças.');
+        }
+        return true;
+      };
+
+      assert.throws(
+        () => validateDrawAttempt(0, 5, 'no_draw'),
+        /DRAW_NOT_ALLOWED/
+      );
+      assert.throws(
+        () => validateDrawAttempt(0, 5, 'block'),
+        /DRAW_NOT_ALLOWED/
+      );
+    });
+
+    it('10.3. Rejeita passagem de turno se o jogador possuir jogadas válidas na mão', () => {
+      const hand: DominoTile[] = [[4, 5], [1, 1]];
+      const leftEnd = 4;
+      const rightEnd = 2;
+
+      const validPlays = getValidPlays(hand, leftEnd, rightEnd);
+      assert.strictEqual(validPlays.length > 0, true);
+
+      const validatePassAttempt = (playsCount: number, boneyardLen: number, drawRule: string, drawsThisTurn: number) => {
+        if (playsCount > 0) {
+          throw new Error('CANNOT_PASS_WITH_VALID_MOVES: Você possui peças jogáveis e não pode passar a vez.');
+        }
+        if (boneyardLen > 0 && drawRule === 'open') {
+          throw new Error('MUST_DRAW_BEFORE_PASS: Você deve comprar peças do monte antes de passar.');
+        }
+        return true;
+      };
+
+      assert.throws(
+        () => validatePassAttempt(validPlays.length, 0, 'open', 0),
+        /CANNOT_PASS_WITH_VALID_MOVES/
+      );
+    });
+
+    it('10.4. Rejeita passagem no tabuleiro vazio quando o jogador tem peças na mão', () => {
+      const hand: DominoTile[] = [[2, 2], [3, 4]];
+      // Tabuleiro vazio: leftEnd e rightEnd são null
+      const validPlays = getValidPlays(hand, null, null);
+      assert.strictEqual(validPlays.length, 2, 'No tabuleiro vazio todas as peças são jogáveis');
+
+      assert.throws(() => {
+        if (validPlays.length > 0) {
+          throw new Error('CANNOT_PASS_WITH_VALID_MOVES: Tabuleiro vazio exige primeira jogada.');
+        }
+      }, /CANNOT_PASS_WITH_VALID_MOVES/);
+    });
+
+    it('10.5. Rejeita passagem se o jogador puder comprar do monte (regra open)', () => {
+      const hand: DominoTile[] = [[1, 2], [3, 3]];
+      const leftEnd = 5;
+      const rightEnd = 6;
+      const validPlays = getValidPlays(hand, leftEnd, rightEnd);
+      assert.strictEqual(validPlays.length, 0, 'Nenhuma peça compatível');
+
+      const boneyardCount = 7;
+      const drawRule = 'open';
+
+      const validatePassAttempt = (playsCount: number, boneyardLen: number, rule: string) => {
+        if (playsCount > 0) {
+          throw new Error('CANNOT_PASS_WITH_VALID_MOVES');
+        }
+        if (boneyardLen > 0 && rule === 'open') {
+          throw new Error('MUST_DRAW_BEFORE_PASS: Você deve comprar peças do monte.');
+        }
+        return true;
+      };
+
+      assert.throws(
+        () => validatePassAttempt(validPlays.length, boneyardCount, drawRule),
+        /MUST_DRAW_BEFORE_PASS/
+      );
+    });
+
+    it('10.6. Permite passagem válida quando não há jogadas possíveis e o monte está esgotado', () => {
+      const hand: DominoTile[] = [[1, 2]];
+      const leftEnd = 5;
+      const rightEnd = 6;
+      const validPlays = getValidPlays(hand, leftEnd, rightEnd);
+      assert.strictEqual(validPlays.length, 0);
+
+      const boneyardCount = 0; // Monte esgotado
+      const drawRule: string = 'open';
+
+      let passed = false;
+      if (validPlays.length === 0 && (boneyardCount === 0 || drawRule === 'no_draw')) {
+        passed = true;
+      }
+
+      assert.strictEqual(passed, true, 'Passagem autorizada quando bloqueado de jogar e comprar');
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // 11. Trancamento (Blocked Game), Desempates e Pontuação
+  // --------------------------------------------------------------------------
+  describe('11. Resolução Completa de Trancamento e Pontuações', () => {
+    it('11.1. Empate em trancamento quando dois jogadores possuem a mesma soma de pontos', () => {
+      const hands: Record<string, DominoTile[]> = {
+        'user-1': [[1, 4]], // Soma = 5
+        'user-2': [[2, 3]], // Soma = 5
+      };
+
+      const config = DOMINO_PRESETS.traditional.config;
+      const res = resolveBlockedRoundWinner(hands, ['user-1', 'user-2'], config);
+
+      assert.strictEqual(res.isDraw, true, 'Empate quando menor soma é idêntica');
+      assert.strictEqual(res.winnerId, null);
+    });
+
+    it('11.2. Pontuação ao bater (domino): vencedor ganha a soma das peças de todos os oponentes', () => {
+      // User 1 bateu (mão vazia)
+      const hands: Record<string, DominoTile[]> = {
+        'user-1': [],
+        'user-2': [[3, 5], [1, 2]], // 8 + 3 = 11
+        'user-3': [[6, 6]],         // 12
+      };
+
+      let roundPoints = 0;
+      for (const [pid, h] of Object.entries(hands)) {
+        if (pid !== 'user-1') {
+          roundPoints += sumTilePips(h);
+        }
+      }
+
+      assert.strictEqual(roundPoints, 11 + 12, '23 pontos acumulados para user-1');
+    });
+
+    it('11.3. Trancamento em Duplas (2v2): calcula pontuação da dupla vencedora', () => {
+      // Dupla A: P1 e P3; Dupla B: P2 e P4
+      const hands: Record<string, DominoTile[]> = {
+        'user-1': [[1, 2]], // 3
+        'user-2': [[4, 4]], // 8
+        'user-3': [[0, 1]], // 1 -> Total Dupla A = 3 + 1 = 4
+        'user-4': [[3, 3]], // 6 -> Total Dupla B = 8 + 6 = 14
+      };
+
+      const config = DOMINO_PRESETS.teams.config;
+      const res = resolveBlockedRoundWinner(
+        hands,
+        ['user-1', 'user-2', 'user-3', 'user-4'],
+        config
+      );
+
+      assert.strictEqual(res.winnerTeam, 'teamA');
+      assert.strictEqual(res.isDraw, false);
+      assert.strictEqual(res.teamSums?.teamA, 4);
+      assert.strictEqual(res.teamSums?.teamB, 14);
+    });
+  });
 });

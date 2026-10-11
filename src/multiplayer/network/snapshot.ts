@@ -113,20 +113,50 @@ export async function getMatchSnapshot<TState = unknown>(
   }
 
   try {
-    // 1. Tentar carregar via RPC segura com sanitização de mãos e peças ocultas (Requirement 9)
+    // 1. Tentar carregar via RPC segura com autorização estrita e sanitização de mãos e peças ocultas
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('get_match_snapshot_for_player', {
         p_match_id: matchId,
       });
 
+      if (rpcErr) {
+        const errCode = (rpcErr as any)?.code;
+        const errMsg = String((rpcErr as any)?.message || '');
+        // Se for erro explícito de autorização ou partida inexistente, propaga imediatamente sem fallback
+        if (
+          errCode === 'P0001' ||
+          errCode === 'P0003' ||
+          errCode === 'P0016' ||
+          errMsg.includes('UNAUTHORIZED') ||
+          errMsg.includes('FORBIDDEN') ||
+          errMsg.includes('MATCH_NOT_FOUND')
+        ) {
+          throw normalizeNetworkError({
+            code: errCode === 'P0001' ? 'UNAUTHORIZED' : errCode === 'P0003' ? 'FORBIDDEN' : 'MATCH_NOT_FOUND',
+            message: errMsg || 'Acesso não autorizado aos dados da partida.',
+            category: 'rule',
+          });
+        }
+      }
+
       if (!rpcErr && rpcRes && rpcRes.success && rpcRes.data) {
         return mapDatabaseToGameSnapshot<TState>(
           rpcRes.data as unknown as MatchRow & { match_players: MatchPlayerRow[] }
         );
       }
-    } catch {
-      // Fallback gracioso para select direto
+    } catch (innerErr: any) {
+      if (
+        innerErr?.code === 'UNAUTHORIZED' ||
+        innerErr?.code === 'FORBIDDEN' ||
+        innerErr?.code === 'MATCH_NOT_FOUND' ||
+        innerErr?.code === 'P0001' ||
+        innerErr?.code === 'P0003' ||
+        innerErr?.code === 'P0016'
+      ) {
+        throw innerErr;
+      }
+      // Outros erros transitórios ou ausência da RPC em ambientes locais continuam para fallback
     }
 
     // 2. Consulta direta de fallback na tabela matches

@@ -398,11 +398,16 @@ export const DominoGame: React.FC<DominoGameProps> = ({
   // Ação 2: Comprar Peça do Monte
   const handleDrawTile = async () => {
     if (!isMyTurn || submittingAction || isFinished) return;
+    if (hasAnyValidPlay) {
+      setFeedbackError('Você já possui peças válidas na mão e não pode comprar.');
+      if (soundEnabled) playTone('error');
+      return;
+    }
     if (boneyardCount <= 0) {
       setFeedbackError('O monte de compra está vazio.');
       return;
     }
-    if (config.drawRule === 'no_draw') {
+    if (config.drawRule === 'no_draw' || (config.drawRule as string) === 'block') {
       setFeedbackError('A regra desta sala não permite compra de peças.');
       return;
     }
@@ -426,6 +431,11 @@ export const DominoGame: React.FC<DominoGameProps> = ({
     if (!isMyTurn || submittingAction || isFinished) return;
     if (hasAnyValidPlay) {
       setFeedbackError('Você possui peças jogáveis na sua mão e não pode passar.');
+      if (soundEnabled) playTone('error');
+      return;
+    }
+    if (boneyardCount > 0 && config.drawRule === 'open') {
+      setFeedbackError('Você deve comprar peças do monte até conseguir jogar ou esvaziar o monte antes de passar.');
       if (soundEnabled) playTone('error');
       return;
     }
@@ -712,8 +722,24 @@ export const DominoGame: React.FC<DominoGameProps> = ({
             <button
               type="button"
               onClick={handleDrawTile}
-              disabled={!isMyTurn || submittingAction || boneyardCount <= 0 || config.drawRule === 'no_draw'}
+              disabled={
+                !isMyTurn ||
+                submittingAction ||
+                boneyardCount <= 0 ||
+                config.drawRule === 'no_draw' ||
+                (config.drawRule as string) === 'block' ||
+                hasAnyValidPlay
+              }
               className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-750 text-white font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+              title={
+                hasAnyValidPlay
+                  ? 'Você já possui peças válidas na mão'
+                  : boneyardCount <= 0
+                  ? 'Monte vazio'
+                  : config.drawRule === 'no_draw'
+                  ? 'Compra não permitida'
+                  : 'Comprar peça do monte'
+              }
             >
               <Plus className="w-4 h-4 text-amber-400" />
               <span>Comprar do Monte</span>
@@ -725,9 +751,20 @@ export const DominoGame: React.FC<DominoGameProps> = ({
             <button
               type="button"
               onClick={handlePassTurn}
-              disabled={!isMyTurn || submittingAction || hasAnyValidPlay}
+              disabled={
+                !isMyTurn ||
+                submittingAction ||
+                hasAnyValidPlay ||
+                (boneyardCount > 0 && config.drawRule === 'open')
+              }
               className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-750 text-white font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-              title={hasAnyValidPlay ? 'Você tem peças válidas para jogar' : 'Passar a vez para o próximo jogador'}
+              title={
+                hasAnyValidPlay
+                  ? 'Você tem peças válidas para jogar'
+                  : boneyardCount > 0 && config.drawRule === 'open'
+                  ? 'Você deve comprar peças do monte antes de passar'
+                  : 'Passar a vez para o próximo jogador'
+              }
             >
               <span>Passar Turno</span>
             </button>
@@ -763,7 +800,7 @@ export const DominoGame: React.FC<DominoGameProps> = ({
                       isPlayable={isPlayable}
                       isSelected={isSelected}
                       size="md"
-                      onClick={() => handleTileClick(tile)}
+                      onClick={submittingAction ? undefined : () => handleTileClick(tile)}
                     />
                     {isPlayable && (
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
