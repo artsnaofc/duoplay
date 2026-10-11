@@ -1,0 +1,8 @@
+{
+  "name": "Remix Duo Play Oficial",
+  "description": "A modular, scalable architecture for real-time multiplayer web games built on Next.js and Supabase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

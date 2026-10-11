@@ -1,0 +1,707 @@
+// ============================================================================
+// Application Entry: DuoPlay-Online App
+// Phase: Fase 10.4 — Integração do Matchmaking e Redesign da Home
+// Description: Orquestração do ciclo de vida da aplicação com suporte a
+//              recuperação de partidas ativas, matchmaking público, salas privadas e modais.
+// ============================================================================
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
+import { HomePage } from '@/pages/HomePage';
+import { ActiveGameWrapper } from '@/multiplayer/registry/ActiveGameWrapper';
+import { RoomLobbyModal } from '@/components/lobby/RoomLobbyModal';
+import { SelectGameForRoomModal } from '@/components/lobby/SelectGameForRoomModal';
+import { JoinRoomByCodeModal } from '@/components/lobby/JoinRoomByCodeModal';
+import { PublicMatchmakingModal } from '@/components/matchmaking/PublicMatchmakingModal';
+import { MultiMatchmakingModal } from '@/components/matchmaking/MultiMatchmakingModal';
+import { useMultiMatchmaking } from '@/hooks/useMultiMatchmaking';
+import { ActiveMatchRecoveryModal } from '@/components/match/ActiveMatchRecoveryModal';
+import { AbandonMatchModal } from '@/components/match/AbandonMatchModal';
+import { MatchResultModal } from '@/components/match/MatchResultModal';
+import { MatchHistoryModal } from '@/components/history/MatchHistoryModal';
+import { PlayerProfileModal } from '@/components/profile/PlayerProfileModal';
+import { PublicPlayerProfileModal } from '@/components/profile/PublicPlayerProfileModal';
+import { LeaderboardModal } from '@/components/leaderboard/LeaderboardModal';
+import { FriendsModal } from '@/components/social/FriendsModal';
+import {
+  getActiveMatchForCurrentUser,
+  abandonMatch,
+  type ActiveMatchInfo,
+} from '@/services/matchSession';
+import {
+  getLatestCompletedMatchForCurrentUser,
+  dismissMatchResult,
+  type MatchHistoryItem,
+} from '@/services/matchHistory';
+import { getMyMatchmakingStatus } from '@/services/matchmaking';
+import { createRoom } from '@/services/rooms';
+import { createGameInvite } from '@/services/invites';
+import { useGameInvites } from '@/hooks/useGameInvites';
+import { usePresenceHeartbeat } from '@/hooks/usePresenceHeartbeat';
+import { useChat } from '@/hooks/useChat';
+import { ReceivedGameInviteModal } from '@/components/social/ReceivedGameInviteModal';
+import { ChatModal } from '@/components/chat/ChatModal';
+import { useActiveWaitingRoom } from '@/hooks/useActiveWaitingRoom';
+import { useNotifications } from '@/hooks/useNotifications';
+import type { Friend } from '@/types/social';
+import type { NotificationItem } from '@/types/notifications';
+
+function MainApp() {
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+
+  const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+  const [isLobbyOpen, setIsLobbyOpen] = useState(false);
+  const [isSelectGameRoomOpen, setIsSelectGameRoomOpen] = useState(false);
+  const [isJoinByCodeOpen, setIsJoinByCodeOpen] = useState(false);
+  const [isMatchmakingOpen, setIsMatchmakingOpen] = useState(false);
+  const [selectedLobbyGameId, setSelectedLobbyGameId] = useState<string>('tic_tac_toe');
+  const [selectedMMGameId, setSelectedMMGameId] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isFriendsOpen, setIsFriendsOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [viewingPublicUserId, setViewingPublicUserId] = useState<string | null>(null);
+  const [initialRoomCode, setInitialRoomCode] = useState<string | null>(null);
+  const [lobbyInitialMode, setLobbyInitialMode] = useState<'create' | 'join' | 'waiting' | 'options'>('create');
+
+  // Hook central de Matchmaking Multijogo Simultâneo
+  const multiMatchmaking = useMultiMatchmaking((matchId) => {
+    handleStartMatch(matchId);
+  });
+
+  // Heartbeat de Presença Global (Fase 14.2 — Lease de Presença)
+  usePresenceHeartbeat();
+
+  // Central de Notificações em Tempo Real (Fase 16.1)
+  const notificationsSystem = useNotifications();
+
+  // Sistema de Comunicação e Chat Privado (Fase 15)
+  const chat = useChat();
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Convites de Partida em Tempo Real (Fase 14.2)
+  const { activeInvite, accept: acceptGameInviteAction, decline: declineGameInviteAction } = useGameInvites();
+
+  // Monitoramento de Sala de Espera Ativa
+  const { activeRoom, leaveActiveWaitingRoom, refreshActiveRoom } = useActiveWaitingRoom();
+
+  // Recovery & Abandonment State
+  const [recoveryMatchInfo, setRecoveryMatchInfo] = useState<ActiveMatchInfo | null>(null);
+  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState(false);
+  const [isRecoveryLoading] = useState(false);
+  const [isAbandonConfirmOpen, setIsAbandonConfirmOpen] = useState(false);
+  const [isAbandoning, setIsAbandoning] = useState(false);
+
+  // Completed Match Recovery State (Fase 8.2)
+  const [completedMatchRecovery, setCompletedMatchRecovery] = useState<MatchHistoryItem | null>(null);
+  const [isCompletedResultOpen, setIsCompletedResultOpen] = useState(false);
+
+  const lastCheckedUserIdRef = useRef<string | null>(null);
+
+  // Lê parâmetros de URL na inicialização (?match=UUID ou ?room=CODE)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const matchParam = params.get('match');
+      const roomParam = params.get('room');
+
+      if (matchParam) {
+        setActiveMatchId(matchParam);
+      } else if (roomParam) {
+        setInitialRoomCode(roomParam.toUpperCase());
+        setIsLobbyOpen(true);
+      }
+    }
+  }, []);
+
+  // Checagem de partida ativa / matchmaking no startup / login
+  const checkActiveMatchOnStartup = useCallback(async (currentUserId: string) => {
+    // Se já estiver em partida via URL ou estado, não abre modal de recuperação
+    if (activeMatchId) return;
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('match')) return;
+    }
+
+    try {
+      const res = await getActiveMatchForCurrentUser();
+      if (res.success && res.data) {
+        // Verifica se a partida não foi recém-abandonada nesta aba pelo usuário atual
+        let isDismissed = false;
+        if (typeof window !== 'undefined') {
+          isDismissed =
+            Boolean(sessionStorage.getItem(`abandoned_match_${currentUserId}_${res.data.match_id}`)) ||
+            Boolean(sessionStorage.getItem(`abandoned_match_${res.data.match_id}`));
+        }
+
+        if (!isDismissed) {
+          setRecoveryMatchInfo(res.data);
+          setIsRecoveryModalOpen(true);
+          return;
+        }
+      } else if (res.success && res.data === null) {
+        // Fase 10.4: Checa se havia uma busca de matchmaking em andamento antes do reload
+        const mmStatusRes = await getMyMatchmakingStatus();
+        if (mmStatusRes.success && mmStatusRes.data) {
+          if (mmStatusRes.data.status === 'matched' && mmStatusRes.data.match_id) {
+            handleStartMatch(mmStatusRes.data.match_id);
+            return;
+          } else if (mmStatusRes.data.status === 'waiting') {
+            setIsMatchmakingOpen(true);
+            return;
+          }
+        }
+
+        // Consulta a partida finalizada mais recente quando não houver partida ativa nem matchmaking
+        const historyRes = await getLatestCompletedMatchForCurrentUser();
+        if (historyRes.success && historyRes.data) {
+          const lastMatch = historyRes.data;
+          let isSeen = false;
+          if (typeof window !== 'undefined') {
+            const seenKey = `seen_match_result_${currentUserId}_${lastMatch.match_id}`;
+            isSeen =
+              Boolean(localStorage.getItem(seenKey)) ||
+              Boolean(sessionStorage.getItem(seenKey));
+          }
+
+          if (!isSeen) {
+            setCompletedMatchRecovery(lastMatch);
+            setIsCompletedResultOpen(true);
+          }
+        }
+      }
+    } catch {
+      // Erros temporários de rede são ignorados no startup
+    }
+  }, [activeMatchId]);
+
+  // Efeito de transição de autenticação (suporta troca de conta User A -> Logout -> User B)
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    if (!isAuthenticated || !user) {
+      lastCheckedUserIdRef.current = null;
+      setRecoveryMatchInfo(null);
+      setCompletedMatchRecovery(null);
+      setIsRecoveryModalOpen(false);
+      setIsCompletedResultOpen(false);
+      setIsAbandonConfirmOpen(false);
+      setIsMatchmakingOpen(false);
+      return;
+    }
+
+    if (user.id !== lastCheckedUserIdRef.current) {
+      lastCheckedUserIdRef.current = user.id;
+      setRecoveryMatchInfo(null);
+      setCompletedMatchRecovery(null);
+      setIsRecoveryModalOpen(false);
+      setIsCompletedResultOpen(false);
+      checkActiveMatchOnStartup(user.id);
+    }
+  }, [isAuthLoading, isAuthenticated, user, checkActiveMatchOnStartup]);
+
+  const handleStartMatch = (matchId: string) => {
+    setIsLobbyOpen(false);
+    setIsMatchmakingOpen(false);
+    setIsRecoveryModalOpen(false);
+    setRecoveryMatchInfo(null);
+    setIsCompletedResultOpen(false);
+    setCompletedMatchRecovery(null);
+    setActiveMatchId(matchId);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('match', matchId);
+      url.searchParams.delete('room');
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  const handleLeaveMatch = () => {
+    setActiveMatchId(null);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('match');
+      window.history.replaceState({}, '', url.toString());
+    }
+
+    // Se houver alguma sala de espera ativa, abre o modal da sala ao voltar para a home
+    if (activeRoom && activeRoom.status === 'waiting') {
+      setInitialRoomCode(activeRoom.code);
+      setLobbyInitialMode('waiting');
+      setIsLobbyOpen(true);
+    }
+  };
+
+  const handleDismissCompletedRecovery = () => {
+    if (completedMatchRecovery && user) {
+      const matchId = completedMatchRecovery.match_id;
+      if (typeof window !== 'undefined') {
+        const seenKey = `seen_match_result_${user.id}_${matchId}`;
+        localStorage.setItem(seenKey, 'true');
+        sessionStorage.setItem(seenKey, 'true');
+      }
+      dismissMatchResult(matchId).catch(() => {});
+    }
+    setIsCompletedResultOpen(false);
+    setCompletedMatchRecovery(null);
+  };
+
+  const handleResumeRecovery = (matchId: string) => {
+    handleStartMatch(matchId);
+  };
+
+  const handleRequestAbandonFromRecovery = () => {
+    setIsAbandonConfirmOpen(true);
+  };
+
+  const handleConfirmAbandonFromRecovery = async () => {
+    if (!recoveryMatchInfo || isAbandoning) return;
+    setIsAbandoning(true);
+
+    try {
+      const matchId = recoveryMatchInfo.match_id;
+      const res = await abandonMatch(matchId);
+      if (res.success) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(`abandoned_match_${matchId}`, 'true');
+        }
+        setIsAbandonConfirmOpen(false);
+        setIsRecoveryModalOpen(false);
+        setRecoveryMatchInfo(null);
+      } else {
+        setIsAbandonConfirmOpen(false);
+      }
+    } catch {
+      setIsAbandonConfirmOpen(false);
+    } finally {
+      setIsAbandoning(false);
+    }
+  };
+
+  const handlePlayWithFriend = async (friend: Friend) => {
+    setIsFriendsOpen(false);
+    try {
+      const result = await createRoom('tic_tac_toe', `Duelo contra ${friend.display_name}`);
+      if (result.success && result.data?.room?.id && result.data?.room?.code) {
+        // Envia automaticamente o convite direto para o amigo selecionado
+        await createGameInvite(friend.friend_id, result.data.room.id);
+        setInitialRoomCode(result.data.room.code);
+        setIsLobbyOpen(true);
+      } else if (result.success && result.data?.room?.code) {
+        setInitialRoomCode(result.data.room.code);
+        setIsLobbyOpen(true);
+      } else {
+        setIsLobbyOpen(true);
+      }
+    } catch {
+      setIsLobbyOpen(true);
+    }
+  };
+
+  const handleOpenChatWithFriend = async (friendUserId: string) => {
+    setIsFriendsOpen(false);
+    setViewingPublicUserId(null);
+    setIsChatOpen(true);
+    await chat.openConversationWithFriend(friendUserId);
+  };
+
+  const handleAcceptInvite = async (inviteId: string) => {
+    const res = await acceptGameInviteAction(inviteId);
+    if (res.success && res.data?.room?.code) {
+      setInitialRoomCode(res.data.room.code);
+      setIsLobbyOpen(true);
+      return { success: true };
+    }
+    return { success: false, error: res.error };
+  };
+
+  const handleDeclineInvite = async (inviteId: string) => {
+    return await declineGameInviteAction(inviteId);
+  };
+
+  const handlePlayWithPlayerId = async () => {
+    setViewingPublicUserId(null);
+    try {
+      const result = await createRoom('tic_tac_toe', 'Duelo Amistoso');
+      if (result.success && result.data?.room?.code) {
+        setInitialRoomCode(result.data.room.code);
+        setIsLobbyOpen(true);
+      } else {
+        setIsLobbyOpen(true);
+      }
+    } catch {
+      setIsLobbyOpen(true);
+    }
+  };
+
+  const handleSelectNotification = useCallback(
+    (item: NotificationItem) => {
+      switch (item.type) {
+        case 'friend_request_received':
+        case 'friend_request_accepted':
+          setIsFriendsOpen(true);
+          break;
+
+        case 'game_invite_received':
+        case 'game_invite_accepted':
+          if (item.data?.room_code && typeof item.data.room_code === 'string') {
+            setInitialRoomCode(item.data.room_code);
+            setIsLobbyOpen(true);
+          } else {
+            setIsLobbyOpen(true);
+          }
+          break;
+
+        case 'new_message':
+          setIsChatOpen(true);
+          if (item.data?.actor_id && typeof item.data.actor_id === 'string') {
+            chat.openConversationWithFriend(item.data.actor_id);
+          } else if (item.data?.conversation_id && typeof item.data.conversation_id === 'string') {
+            chat.openConversationById(item.data.conversation_id);
+          }
+          break;
+
+        case 'rematch_received':
+        case 'rematch_accepted':
+          if (item.data?.match_id && typeof item.data.match_id === 'string') {
+            handleStartMatch(item.data.match_id);
+          } else if (item.data?.original_match_id && typeof item.data.original_match_id === 'string') {
+            setIsHistoryOpen(true);
+          }
+          break;
+
+        case 'match_finished':
+          setIsHistoryOpen(true);
+          break;
+
+        default:
+          break;
+      }
+    },
+    [chat]
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#090d16] text-slate-100 selection:bg-blue-600 selection:text-white">
+      {/* Platform Header */}
+      <Header
+        onOpenMatchmaking={() => {
+          setSelectedMMGameId('tic_tac_toe');
+          setIsMatchmakingOpen(true);
+        }}
+        onOpenHistory={() => setIsHistoryOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenFriends={() => setIsFriendsOpen(true)}
+        onOpenChat={() => setIsChatOpen(true)}
+        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+        unreadChatCount={chat.totalUnreadCount}
+        hasActiveMatch={Boolean(recoveryMatchInfo)}
+        onResumeActiveMatch={() => setIsRecoveryModalOpen(true)}
+        activeWaitingRoomCode={activeRoom?.code}
+        onOpenActiveWaitingRoom={() => {
+          if (activeRoom?.code) {
+            setInitialRoomCode(activeRoom.code);
+            setIsLobbyOpen(true);
+          }
+        }}
+        notifications={notificationsSystem.notifications}
+        unreadNotificationCount={notificationsSystem.unreadCount}
+        isNotificationsLoading={notificationsSystem.isLoading}
+        hasMoreNotifications={notificationsSystem.hasMore}
+        notificationsError={notificationsSystem.error}
+        onRefreshNotifications={notificationsSystem.refreshNotifications}
+        onFetchNextNotificationsPage={notificationsSystem.fetchNextPage}
+        onMarkNotificationAsRead={notificationsSystem.markAsRead}
+        onMarkAllNotificationsAsRead={notificationsSystem.markAllAsRead}
+        onSelectNotification={handleSelectNotification}
+      />
+
+      {/* Banner de Sala de Espera Ativa (Evita salas esquecidas) */}
+      {activeRoom && !activeMatchId && !isLobbyOpen && (
+        <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-b border-emerald-500/40 px-4 py-2.5 text-white animate-in slide-in-from-top duration-300">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+              <div className="text-left">
+                <div className="font-bold text-xs sm:text-sm flex items-center gap-2">
+                  <span>Sala de Espera Ativa</span>
+                  <span className="font-mono bg-emerald-950 border border-emerald-500/50 text-emerald-300 px-2 py-0.5 rounded text-xs font-black tracking-wider">
+                    #{activeRoom.code}
+                  </span>
+                  <span className="text-[11px] text-emerald-400/90 font-normal">
+                    ({activeRoom.members.length}/2 {activeRoom.members.length === 1 ? 'jogador' : 'jogadores'})
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 hidden sm:block">
+                  Você está participando de uma sala ativa. Volte para a sala ou saia para liberar o espaço.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setInitialRoomCode(activeRoom.code);
+                  setIsLobbyOpen(true);
+                }}
+                className="grow sm:grow-0 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-900/40 transition-all flex items-center justify-center gap-1.5"
+              >
+                <span>Voltar para a Sala</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => leaveActiveWaitingRoom()}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs border border-slate-700 transition-all"
+              >
+                Sair da Sala
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <main className="grow">
+        {activeMatchId ? (
+          <ActiveGameWrapper
+            matchId={activeMatchId}
+            onLeave={handleLeaveMatch}
+            onViewHistory={() => setIsHistoryOpen(true)}
+            onStartRematch={handleStartMatch}
+            onViewPlayerProfile={(userId) => setViewingPublicUserId(userId)}
+            onPlayAgain={(gameId) => {
+              handleLeaveMatch();
+              if (gameId) setSelectedMMGameId(gameId);
+              setIsMatchmakingOpen(true);
+            }}
+          />
+        ) : (
+          <HomePage
+            onOpenMatchmaking={(gameId) => {
+              setSelectedMMGameId(gameId || null);
+              setIsMatchmakingOpen(true);
+            }}
+            onOpenLobby={(gameId) => {
+              if (gameId) {
+                setSelectedLobbyGameId(gameId);
+                setLobbyInitialMode('create');
+                setIsLobbyOpen(true);
+              } else {
+                setIsSelectGameRoomOpen(true);
+              }
+            }}
+            onOpenJoinByCode={() => setIsJoinByCodeOpen(true)}
+            onOpenHistory={() => setIsHistoryOpen(true)}
+            onOpenProfile={() => setIsProfileOpen(true)}
+            onOpenFriends={() => setIsFriendsOpen(true)}
+            hasActiveMatch={Boolean(recoveryMatchInfo)}
+            onResumeActiveMatch={() => setIsRecoveryModalOpen(true)}
+            activeMatchmakingCount={multiMatchmaking.activeCount}
+          />
+        )}
+      </main>
+
+      {/* Platform Footer */}
+      <Footer />
+
+      {/* PWA Offline Connectivity Indicator */}
+      <OfflineIndicator />
+
+      {/* Modal de Matchmaking Multijogo Simultâneo Autoritatívo */}
+      <MultiMatchmakingModal
+        isOpen={isMatchmakingOpen && !activeMatchId}
+        onClose={() => setIsMatchmakingOpen(false)}
+        queues={multiMatchmaking.queues}
+        onStartSearch={(gameIds) => multiMatchmaking.startSearch(gameIds)}
+        onCancelGameSearch={(gId) => multiMatchmaking.cancelGameSearch(gId)}
+        onCancelAllSearches={() => multiMatchmaking.cancelAllSearches()}
+        preSelectedGameId={selectedMMGameId}
+      />
+
+      {/* Modal de Seleção de Jogo para Sala Privada */}
+      <SelectGameForRoomModal
+        isOpen={isSelectGameRoomOpen}
+        onClose={() => setIsSelectGameRoomOpen(false)}
+        onSelectGame={(gameId) => {
+          setSelectedLobbyGameId(gameId);
+          setIsSelectGameRoomOpen(false);
+          setLobbyInitialMode('create');
+          setIsLobbyOpen(true);
+        }}
+      />
+
+      {/* Modal Centralizado de Entrada por Código de Sala */}
+      <JoinRoomByCodeModal
+        isOpen={isJoinByCodeOpen}
+        onClose={() => setIsJoinByCodeOpen(false)}
+        onJoinSuccess={(room) => {
+          setIsJoinByCodeOpen(false);
+          setSelectedLobbyGameId(room.game_id);
+          setInitialRoomCode(room.code);
+          setLobbyInitialMode('waiting');
+          setIsLobbyOpen(true);
+        }}
+      />
+
+      {/* Modal de Salas & Lobby para Partidas Privadas */}
+      <RoomLobbyModal
+        isOpen={isLobbyOpen}
+        initialCode={initialRoomCode}
+        initialMode={lobbyInitialMode}
+        defaultGameId={selectedLobbyGameId}
+        onClose={() => {
+          setIsLobbyOpen(false);
+          setInitialRoomCode(null);
+          setLobbyInitialMode('create');
+          refreshActiveRoom();
+        }}
+        onMatchStarted={handleStartMatch}
+      />
+
+      {/* Modal de Amigos & Comunidade Social */}
+      <FriendsModal
+        isOpen={isFriendsOpen}
+        onClose={() => setIsFriendsOpen(false)}
+        onViewUserProfile={(userId) => {
+          setIsFriendsOpen(false);
+          setViewingPublicUserId(userId);
+        }}
+        onPlayWithFriend={handlePlayWithFriend}
+        onOpenChatWithFriend={handleOpenChatWithFriend}
+      />
+
+      {/* Modal de Histórico Paginado de Partidas */}
+      <MatchHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onPlayGame={() => {
+          setSelectedMMGameId('tic_tac_toe');
+          setIsMatchmakingOpen(true);
+        }}
+        onViewUserProfile={(userId) => setViewingPublicUserId(userId)}
+      />
+
+      {/* Modal de Recuperação de Partida Ativa */}
+      <ActiveMatchRecoveryModal
+        isOpen={isRecoveryModalOpen && !activeMatchId}
+        matchInfo={recoveryMatchInfo}
+        isLoading={isRecoveryLoading}
+        onResume={handleResumeRecovery}
+        onRequestAbandon={handleRequestAbandonFromRecovery}
+      />
+
+      {/* Modal de Resultado de Partida Finalizada Recuperada no Startup (Fase 8.2) */}
+      {completedMatchRecovery && (
+        <MatchResultModal
+          isOpen={isCompletedResultOpen && !activeMatchId}
+          matchId={completedMatchRecovery.match_id}
+          gameName={completedMatchRecovery.game_name}
+          status={completedMatchRecovery.status}
+          winnerId={completedMatchRecovery.winner_id}
+          isDraw={completedMatchRecovery.is_draw}
+          finishReason={completedMatchRecovery.finish_reason}
+          currentUserId={user?.id || null}
+          showRematch={false}
+          myPlayer={{
+            userId: user?.id || null,
+            gameSymbol: completedMatchRecovery.my_symbol,
+            slot: completedMatchRecovery.my_slot,
+            displayName: user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Você',
+          }}
+          opponentPlayer={
+            completedMatchRecovery.opponents?.[0]
+              ? {
+                  userId: completedMatchRecovery.opponents[0].user_id,
+                  gameSymbol: completedMatchRecovery.opponents[0].game_symbol,
+                  slot: completedMatchRecovery.opponents[0].slot,
+                  displayName:
+                    completedMatchRecovery.opponents[0].display_name ||
+                    completedMatchRecovery.opponents[0].username ||
+                    'Adversário',
+                  avatarUrl: completedMatchRecovery.opponents[0].avatar_url,
+                }
+              : null
+          }
+          onGoHome={handleDismissCompletedRecovery}
+          onViewHistory={() => {
+            handleDismissCompletedRecovery();
+            setIsHistoryOpen(true);
+          }}
+          onStartRematch={handleStartMatch}
+          onFindNewOpponent={() => {
+            handleDismissCompletedRecovery();
+            setIsMatchmakingOpen(true);
+          }}
+          onViewUserProfile={(userId) => setViewingPublicUserId(userId)}
+        />
+      )}
+
+      {/* Modal de Perfil Próprio com Estatísticas e Edição */}
+      <PlayerProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        onOpenHistory={() => {
+          setIsProfileOpen(false);
+          setIsHistoryOpen(true);
+        }}
+      />
+
+      {/* Modal de Classificação e Ranking Geral (Fase 17) */}
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+        currentUserId={user?.id}
+        onSelectPlayer={(userId) => {
+          setIsLeaderboardOpen(false);
+          setViewingPublicUserId(userId);
+        }}
+      />
+
+      {/* Modal de Perfil Público de Outro Competidor */}
+      <PublicPlayerProfileModal
+        userId={viewingPublicUserId}
+        isOpen={Boolean(viewingPublicUserId)}
+        onClose={() => setViewingPublicUserId(null)}
+        onPlayWithPlayer={handlePlayWithPlayerId}
+        onOpenChatWithPlayer={handleOpenChatWithFriend}
+      />
+
+      {/* Modal de Central de Mensagens e Chat Privado (Fase 15) */}
+      <ChatModal
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        chat={chat}
+        onOpenFriends={() => setIsFriendsOpen(true)}
+      />
+
+      {/* Modal de Confirmação de Abandono (Origem: Recovery) */}
+      <AbandonMatchModal
+        isOpen={isAbandonConfirmOpen}
+        isLoading={isAbandoning}
+        onCancel={() => setIsAbandonConfirmOpen(false)}
+        onConfirm={handleConfirmAbandonFromRecovery}
+      />
+
+      {/* Modal de Convite de Partida Recebido em Tempo Real (Fase 14.2) */}
+      <ReceivedGameInviteModal
+        invite={activeInvite}
+        onAccept={handleAcceptInvite}
+        onDecline={handleDeclineInvite}
+      />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  );
+}

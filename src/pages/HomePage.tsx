@@ -1,0 +1,322 @@
+// ============================================================================
+// Component: HomePage — DuoPlay-Online
+// Phase: Fase 10.4 — Redesign da Home para Lobby de Plataforma de Jogos
+// Description: Interface em estilo de lobby multiplayer com cards interativos,
+//              atalhos de matchmaking público, salas privadas e recuperação de partida.
+// ============================================================================
+
+import React, { useState } from 'react';
+import {
+  Swords,
+  KeyRound,
+  LogIn,
+  History,
+  Sparkles,
+  Play,
+  User,
+  Users,
+} from 'lucide-react';
+import { GameCard } from '@/components/GameCard';
+import { GameItem } from '@/types/platform';
+import { useAuth } from '@/hooks/useAuth';
+import { useSocial } from '@/hooks/useSocial';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { PlayerAvatar } from '@/components/profile/PlayerAvatar';
+import { listGames } from '@/multiplayer/registry';
+
+const GAMES: GameItem[] = listGames().map((g) => ({
+  id: g.id,
+  title: g.title,
+  tagline: g.tagline,
+  description: g.description,
+  minPlayers: g.minPlayers,
+  maxPlayers: g.maxPlayers,
+  category: g.category,
+  iconName: g.iconName as any,
+  highlights: g.highlights,
+  isAvailable: g.isAvailable,
+  coverImage: g.coverImage,
+}));
+
+export interface HomePageProps {
+  onOpenMatchmaking?: (gameId?: string) => void;
+  onOpenLobby?: (gameId?: string) => void;
+  onOpenJoinByCode?: () => void;
+  onOpenHistory?: () => void;
+  onOpenProfile?: () => void;
+  onOpenFriends?: () => void;
+  hasActiveMatch?: boolean;
+  onResumeActiveMatch?: () => void;
+  activeMatchmakingCount?: number;
+}
+
+export const HomePage: React.FC<HomePageProps> = ({
+  onOpenMatchmaking,
+  onOpenLobby,
+  onOpenJoinByCode,
+  onOpenHistory,
+  onOpenProfile,
+  onOpenFriends,
+  hasActiveMatch,
+  onResumeActiveMatch,
+  activeMatchmakingCount = 0,
+}) => {
+  const { user, profile, isAuthenticated } = useAuth();
+  const { pendingCount } = useSocial();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const displayName =
+    profile?.display_name ||
+    user?.user_metadata?.display_name ||
+    user?.email?.split('@')[0] ||
+    'Jogador';
+
+  const totalMatches = profile?.total_matches ?? 0;
+  const totalWins = profile?.total_wins ?? 0;
+  const winRate = totalMatches > 0 ? Math.round((totalWins / totalMatches) * 100) : 0;
+
+  const handleMatchmakingAction = (gameId?: string) => {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true);
+      return;
+    }
+    onOpenMatchmaking?.(gameId);
+  };
+
+  const handleCreateRoomAction = (gameId?: string) => {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true);
+      return;
+    }
+    onOpenLobby?.(gameId);
+  };
+
+  const handleJoinWithCodeAction = () => {
+    if (!isAuthenticated) {
+      setAuthModalOpen(true);
+      return;
+    }
+    onOpenJoinByCode?.();
+  };
+
+  return (
+    <div className="space-y-12 sm:space-y-16 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      {/* 1. User Welcome & Active Match Banner */}
+      {isAuthenticated && (
+        <section className="space-y-4 animate-fade-in">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl relative overflow-hidden">
+            <div
+              className={`flex items-center gap-3.5 ${onOpenProfile ? 'cursor-pointer group' : ''}`}
+              onClick={onOpenProfile}
+            >
+              <PlayerAvatar
+                avatarUrl={profile?.avatar_url}
+                displayName={displayName}
+                username={profile?.username}
+                size="md"
+              />
+              <div>
+                <div className="text-base font-extrabold text-white flex items-center gap-2">
+                  <span className="group-hover:text-blue-400 transition-colors">Olá, {displayName}</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" title="Sessão Ativa" />
+                </div>
+                <p className="text-xs text-slate-400">
+                  {profile ? (
+                    <span className="font-mono tabular-nums">
+                      {totalMatches} {totalMatches === 1 ? 'partida' : 'partidas'} · {totalWins} {totalWins === 1 ? 'vitória' : 'vitórias'} · {winRate}% taxa
+                    </span>
+                  ) : (
+                    <span>Bem-vindo ao lobby do DuoPlay. Escolha um jogo para entrar em ação.</span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              {onOpenFriends && (
+                <button
+                  type="button"
+                  onClick={onOpenFriends}
+                  className="flex-1 sm:flex-initial py-2 px-3.5 rounded-xl bg-indigo-950/50 hover:bg-indigo-900/60 border border-indigo-800/60 text-indigo-300 font-bold text-xs transition-colors flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-indigo-400 relative"
+                >
+                  <Users className="w-4 h-4 text-indigo-400" />
+                  <span>Amigos</span>
+                  {pendingCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-[10px] font-bold text-white">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {onOpenProfile && (
+                <button
+                  type="button"
+                  onClick={onOpenProfile}
+                  className="flex-1 sm:flex-initial py-2 px-3.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/60 text-purple-300 font-bold text-xs transition-colors flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-purple-400"
+                >
+                  <User className="w-4 h-4 text-purple-400" />
+                  <span>Meu Perfil</span>
+                </button>
+              )}
+
+              {onOpenHistory && (
+                <button
+                  type="button"
+                  onClick={onOpenHistory}
+                  className="flex-1 sm:flex-initial py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition-colors flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-slate-400"
+                >
+                  <History className="w-4 h-4 text-slate-400" />
+                  <span>Histórico</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Background Active Matchmaking Indicator */}
+          {activeMatchmakingCount > 0 && (
+            <div
+              onClick={() => handleMatchmakingAction()}
+              className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/80 via-indigo-950/70 to-blue-900/50 border border-blue-500/60 shadow-xl flex items-center justify-between gap-4 cursor-pointer hover:border-blue-400 transition-all group animate-fade-in"
+            >
+              <div className="flex items-center gap-3">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500" />
+                </span>
+                <div>
+                  <h4 className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">
+                    Procurando partidas ({activeMatchmakingCount})
+                  </h4>
+                  <p className="text-xs text-blue-200/80">
+                    Busca em andamento em segundo plano. Clique para gerenciar ou acompanhar.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="py-1.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-950/50 shrink-0"
+              >
+                Acompanhar
+              </button>
+            </div>
+          )}
+
+          {/* Active Match Recovery Banner */}
+          {hasActiveMatch && onResumeActiveMatch && (
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/40 border border-amber-700/80 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-pulse">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-[11px] font-bold text-amber-300">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span>Partida Ativa em Andamento</span>
+                </div>
+                <h3 className="text-base font-extrabold text-white">
+                  Você tem uma partida em progresso no servidor!
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Retorne ao jogo antes que o cronômetro do seu turno expire.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onResumeActiveMatch}
+                className="py-3 px-5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-950/50 transition-all flex items-center gap-2 shrink-0 active:scale-95"
+              >
+                <Play className="w-4 h-4 fill-slate-950" />
+                <span>Continuar Partida</span>
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 2. Hero Lobby Banner */}
+      <section id="hero" className="relative rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 via-slate-900/60 to-slate-950/90 p-6 sm:p-10 lg:p-12 shadow-2xl overflow-hidden">
+        <div
+          className="absolute -top-24 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-gradient-to-b from-blue-600/20 via-indigo-600/10 to-transparent blur-3xl pointer-events-none"
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10 max-w-3xl space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-950/60 border border-blue-800/60 text-xs text-blue-300 font-bold">
+            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+            <span>Lobby de Jogos Multiplayer</span>
+          </div>
+
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+            Desafie jogadores em tempo real{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+              sem instalação
+            </span>
+          </h1>
+
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
+            Encontre um oponente público em segundos ou crie uma sala privada com código para seus amigos.
+          </p>
+
+          <div className="pt-2 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => handleMatchmakingAction()}
+              className="py-3 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-blue-950/60 transition-all flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-blue-400 active:scale-95"
+            >
+              <Swords className="w-4 h-4" />
+              <span>Encontrar Partida Rápida</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCreateRoomAction()}
+              className="py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-slate-400 active:scale-95"
+            >
+              <KeyRound className="w-4 h-4 text-slate-400" />
+              <span>Criar Sala Privada</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleJoinWithCodeAction()}
+              className="py-3 px-5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-slate-400 active:scale-95"
+            >
+              <LogIn className="w-4 h-4 text-blue-400" />
+              <span>Entrar com código</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Games Catalog Section */}
+      <section id="games" className="space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+              Catálogo de Jogos
+            </h2>
+            <p className="text-xs text-slate-400">
+              Selecione um título para iniciar a busca de adversários ou criar uma sala.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {GAMES.map((game) => (
+            <GameCard
+              key={game.id}
+              game={game}
+              imageSrc={game.coverImage}
+              onMatchmaking={handleMatchmakingAction}
+              onCreateRoom={handleCreateRoomAction}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Auth Modal for Unauthenticated Users */}
+      <AuthModal
+        isOpen={authModalOpen}
+        initialMode="login"
+        onClose={() => setAuthModalOpen(false)}
+      />
+    </div>
+  );
+};
