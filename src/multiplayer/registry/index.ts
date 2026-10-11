@@ -9,6 +9,7 @@ import React from 'react';
 import { TicTacToeGame } from '@/games/tic-tac-toe/TicTacToeGame';
 import { CartaDuoGame } from '@/games/carta-duo/CartaDuoGame';
 import { SnakeGame } from '@/games/snake/SnakeGame';
+import { DominoGame } from '@/games/domino/DominoGame';
 
 // Caminhos estáticos públicos (/images/...) para garantir funcionamento robusto na Vercel em produção
 const ticTacToeCover = '/images/tic_tac_toe_cover_1791476928538.jpg';
@@ -101,21 +102,33 @@ const REGISTRY: Record<string, GameDefinition> = {
     description:
       'Clássico dominó competitivo de turnos rápidos e tática. Bloqueie as saídas e pontue com inteligência matemática.',
     minPlayers: 2,
-    maxPlayers: 2,
+    maxPlayers: 4,
     category: 'Estratégia / Tabuleiro',
     gameType: 'turn_based',
     iconName: 'zap',
     highlights: [
+      'Disputa 1v1 ou Duplas 2v2',
+      'Configuração completa de regras e conjuntos',
       'Distribuição de peças 100% aleatória',
       'Validação matemática no PostgreSQL',
-      'Partidas dinâmicas de raciocínio lógico',
     ],
-    isAvailable: false,
+    isAvailable: true,
     coverImage: dominoCover,
+    component: DominoGame,
     config: {
       category_label: 'Turnos',
       requires_timer: true,
+      tileset: 'double_6',
       max_tile_value: 6,
+      initial_hand_size: 7,
+      draw_rule: 'open',
+      play_immediately: true,
+      auto_pass: true,
+      start_rule: 'highest_double',
+      block_rule: 'lowest_pip_count',
+      scoring_mode: 'single_round',
+      target_score: 100,
+      turn_timer: 30,
     },
   },
   'billiards': {

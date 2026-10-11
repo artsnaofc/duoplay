@@ -40,6 +40,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { InviteFriendsToRoomModal } from '@/components/social/InviteFriendsToRoomModal';
 import { getGameDefinition, isSameGame } from '@/multiplayer/registry/index';
+import { DOMINO_PRESETS, type DominoPresetName, calculateTotalTiles } from '@/games/domino/types';
 
 interface RoomLobbyModalProps {
   isOpen: boolean;
@@ -144,6 +145,28 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
             await updateRoomConfig(roomId, {
               grid_size: 3,
               win_streak: 3,
+              turn_timer: 30,
+            });
+          } catch {
+            // Silencia falhas transitórias de configuração inicial
+          }
+        }
+
+        // Se for Dominó Duo, salva as regras padrão na criação da sala
+        if (isSameGame(defaultGameId, 'domino')) {
+          try {
+            await updateRoomConfig(roomId, {
+              tileset: 'double_6',
+              max_tile_value: 6,
+              initial_hand_size: 7,
+              draw_rule: 'open',
+              play_immediately: true,
+              auto_pass: true,
+              start_rule: 'highest_double',
+              block_rule: 'lowest_pip_count',
+              scoring_mode: 'single_round',
+              target_score: 100,
+              team_mode: 'individual',
               turn_timer: 30,
             });
           } catch {
@@ -368,6 +391,22 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
       await refreshRoom(currentRoom.id);
     } else {
       setErrorMessage(result.error || 'Não foi possível atualizar as configurações da sala.');
+    }
+  };
+
+  // 6.1 Aplica preset completo do Dominó Duo (Host apenas)
+  const handleApplyDominoPreset = async (presetKey: DominoPresetName) => {
+    if (!currentRoom || !isHost) return;
+    const preset = DOMINO_PRESETS[presetKey];
+    if (!preset) return;
+    const result = await updateRoomConfig(currentRoom.id, {
+      ...preset.config,
+      preset: presetKey,
+    });
+    if (result.success) {
+      await refreshRoom(currentRoom.id);
+    } else {
+      setErrorMessage(result.error || 'Não foi possível aplicar o preset do Dominó.');
     }
   };
 
@@ -795,6 +834,282 @@ export const RoomLobbyModal: React.FC<RoomLobbyModalProps> = ({
                         ) : (
                           <span className="font-extrabold text-white">
                             {(currentRoom.config as any)?.turn_timer ?? 30}s
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SEÇÃO DE CONFIGURAÇÕES DE REGRAS EXCLUSIVAS (DOMINÓ DUO) */}
+                {(currentRoom.game_id === 'domino') && (
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-850/80 space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Regras do Dominó Duo</span>
+                      </h3>
+                      <span className="text-[10px] text-slate-400">
+                        {calculateTotalTiles(Number((currentRoom.config as any)?.max_tile_value ?? 6))} peças no conjunto
+                      </span>
+                    </div>
+
+                    {/* Presets de Regras */}
+                    {isHost && (
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-semibold text-slate-400">Presets Recomendados:</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                          {(Object.keys(DOMINO_PRESETS) as DominoPresetName[]).map((pKey) => {
+                            const pData = DOMINO_PRESETS[pKey];
+                            const isCurrentPreset = (currentRoom.config as any)?.preset === pKey;
+                            return (
+                              <button
+                                key={pKey}
+                                type="button"
+                                onClick={() => handleApplyDominoPreset(pKey)}
+                                className={`px-2 py-1.5 rounded-lg text-[11px] font-bold border transition-all text-left truncate ${
+                                  isCurrentPreset
+                                    ? 'bg-amber-500/20 border-amber-500/80 text-amber-200'
+                                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                                }`}
+                                title={pData.description}
+                              >
+                                {pData.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-2.5 text-xs text-slate-300 pt-1">
+                      {/* 1. Modalidade e Equipes */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Modalidade:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-team-mode"
+                            value={(currentRoom.config as any)?.team_mode ?? 'individual'}
+                            onChange={(e) => {
+                              const newMode = e.target.value;
+                              handleUpdateRule('team_mode', newMode);
+                              if (newMode === 'teams_2v2') {
+                                handleUpdateRule('draw_rule', 'no_draw');
+                              }
+                            }}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value="individual">Individual (Todos contra todos)</option>
+                            <option value="teams_2v2">Duplas 2v2 (P1 & P3 vs P2 & P4)</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            {(currentRoom.config as any)?.team_mode === 'teams_2v2' ? 'Duplas (2v2)' : 'Individual'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 2. Conjunto de Peças (Tileset) */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Conjunto de Peças:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-tileset"
+                            value={(currentRoom.config as any)?.tileset ?? 'double_6'}
+                            onChange={(e) => {
+                              const tSet = e.target.value;
+                              let maxVal = 6;
+                              if (tSet === 'double_6') maxVal = 6;
+                              else if (tSet === 'double_9') maxVal = 9;
+                              else if (tSet === 'double_12') maxVal = 12;
+                              handleUpdateRule('tileset', tSet);
+                              handleUpdateRule('max_tile_value', maxVal);
+                            }}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value="double_6">Duplo-6 (28 peças)</option>
+                            <option value="double_9">Duplo-9 (55 peças)</option>
+                            <option value="double_12">Duplo-12 (91 peças)</option>
+                            <option value="custom">Personalizado</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            Duplo-{(currentRoom.config as any)?.max_tile_value ?? 6} ({calculateTotalTiles(Number((currentRoom.config as any)?.max_tile_value ?? 6))} peças)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 2.1 Maior valor se Personalizado */}
+                      {isHost && (currentRoom.config as any)?.tileset === 'custom' && (
+                        <div className="flex items-center justify-between gap-2 pl-3 border-l-2 border-amber-500/40">
+                          <span className="font-semibold text-slate-400">Valor Máximo da Peça (3 a 12):</span>
+                          <input
+                            type="number"
+                            min={3}
+                            max={12}
+                            value={(currentRoom.config as any)?.max_tile_value ?? 6}
+                            onChange={(e) => {
+                              const val = Math.max(3, Math.min(12, Number(e.target.value) || 6));
+                              handleUpdateRule('max_tile_value', val);
+                            }}
+                            className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-center font-bold text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          />
+                        </div>
+                      )}
+
+                      {/* 3. Peças por Jogador */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Peças por Jogador:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-hand-size"
+                            value={(currentRoom.config as any)?.initial_hand_size ?? 7}
+                            onChange={(e) => handleUpdateRule('initial_hand_size', Number(e.target.value))}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value={5}>5 peças</option>
+                            <option value={6}>6 peças</option>
+                            <option value={7}>7 peças (Padrão)</option>
+                            <option value={8}>8 peças</option>
+                            <option value={9}>9 peças</option>
+                            <option value={10}>10 peças</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            {(currentRoom.config as any)?.initial_hand_size ?? 7} peças
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 4. Regra de Compra no Monte */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Compra de Peças:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-draw"
+                            value={(currentRoom.config as any)?.draw_rule ?? 'open'}
+                            onChange={(e) => handleUpdateRule('draw_rule', e.target.value)}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value="open">Livre (Até conseguir jogar)</option>
+                            <option value="one_tile">Apenas 1 por turno</option>
+                            <option value="no_draw">Sem compra (Passar direto)</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            {(currentRoom.config as any)?.draw_rule === 'open'
+                              ? 'Livre'
+                              : (currentRoom.config as any)?.draw_rule === 'one_tile'
+                              ? '1 por turno'
+                              : 'Sem compra'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 5. Jogar Imediatamente após Comprar */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Jogar ao Comprar:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-play-immediately"
+                            value={String((currentRoom.config as any)?.play_immediately ?? true)}
+                            onChange={(e) => handleUpdateRule('play_immediately', e.target.value === 'true')}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value="true">Permitido jogar na hora</option>
+                            <option value="false">Não (Passa a vez)</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            {((currentRoom.config as any)?.play_immediately ?? true) ? 'Permitido' : 'Passa a vez'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 6. Início da Partida */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Início da Partida:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-start-rule"
+                            value={(currentRoom.config as any)?.start_rule ?? 'highest_double'}
+                            onChange={(e) => handleUpdateRule('start_rule', e.target.value)}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value="highest_double">Maior Dupla ([6,6], [5,5]...)</option>
+                            <option value="random">Sorteio Aleatório</option>
+                            <option value="highest_tile">Peça de Maior Soma</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            {(currentRoom.config as any)?.start_rule === 'highest_double'
+                              ? 'Maior Dupla'
+                              : (currentRoom.config as any)?.start_rule === 'random'
+                              ? 'Aleatório'
+                              : 'Maior Peça'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 7. Pontuação */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Pontuação:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-scoring"
+                            value={(currentRoom.config as any)?.scoring_mode ?? 'single_round'}
+                            onChange={(e) => handleUpdateRule('scoring_mode', e.target.value)}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value="single_round">Partida Única (1 Rodada)</option>
+                            <option value="target_score">Meta de Pontos</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            {(currentRoom.config as any)?.scoring_mode === 'target_score'
+                              ? `Meta ${(currentRoom.config as any)?.target_score ?? 100} pts`
+                              : 'Partida Única'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 7.1 Meta de Pontos se target_score */}
+                      {isHost && (currentRoom.config as any)?.scoring_mode === 'target_score' && (
+                        <div className="flex items-center justify-between gap-2 pl-3 border-l-2 border-amber-500/40">
+                          <span className="font-semibold text-slate-400">Meta para Vitória:</span>
+                          <select
+                            id="rule-domino-target-score"
+                            value={(currentRoom.config as any)?.target_score ?? 100}
+                            onChange={(e) => handleUpdateRule('target_score', Number(e.target.value))}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value={50}>50 pontos</option>
+                            <option value={100}>100 pontos</option>
+                            <option value={150}>150 pontos</option>
+                            <option value={200}>200 pontos</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {/* 8. Tempo por Turno */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-slate-400">Tempo por Turno:</span>
+                        {isHost ? (
+                          <select
+                            id="rule-domino-turn-timer"
+                            value={(currentRoom.config as any)?.turn_timer ?? 30}
+                            onChange={(e) => handleUpdateRule('turn_timer', Number(e.target.value))}
+                            className="bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold text-white"
+                          >
+                            <option value={0}>Sem Limite</option>
+                            <option value={15}>15 segundos (Rápido)</option>
+                            <option value={30}>30 segundos (Padrão)</option>
+                            <option value={45}>45 segundos</option>
+                            <option value={60}>60 segundos</option>
+                          </select>
+                        ) : (
+                          <span className="font-extrabold text-white">
+                            {(currentRoom.config as any)?.turn_timer ? `${(currentRoom.config as any).turn_timer}s` : 'Sem limite'}
                           </span>
                         )}
                       </div>

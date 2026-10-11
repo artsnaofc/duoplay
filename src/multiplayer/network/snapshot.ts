@@ -113,6 +113,23 @@ export async function getMatchSnapshot<TState = unknown>(
   }
 
   try {
+    // 1. Tentar carregar via RPC segura com sanitização de mãos e peças ocultas (Requirement 9)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)('get_match_snapshot_for_player', {
+        p_match_id: matchId,
+      });
+
+      if (!rpcErr && rpcRes && rpcRes.success && rpcRes.data) {
+        return mapDatabaseToGameSnapshot<TState>(
+          rpcRes.data as unknown as MatchRow & { match_players: MatchPlayerRow[] }
+        );
+      }
+    } catch {
+      // Fallback gracioso para select direto
+    }
+
+    // 2. Consulta direta de fallback na tabela matches
     const { data, error } = await supabase
       .from('matches')
       .select(`
