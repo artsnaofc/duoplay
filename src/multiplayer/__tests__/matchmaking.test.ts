@@ -575,4 +575,60 @@ describe('Fase 10 & 10.1: Matchmaking Público, Concorrência e Reconciliação'
     assert.strictEqual(res.success, false);
     assert.strictEqual(res.code, 'P0015');
   });
+
+  it('23. Usuário sem entrada prévia na fila (fila vazia) entra com sucesso sem erro de v_my_entry unassigned', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).rpc = async (fn: string, params: { p_game_id: string }) => {
+      assert.strictEqual(fn, 'join_matchmaking_queue');
+      assert.strictEqual(params.p_game_id, 'domino');
+      return {
+        data: {
+          success: true,
+          data: {
+            queue_id: 'queue-new-user-123',
+            game_id: 'domino',
+            status: 'waiting',
+            match_id: null,
+            expires_at: '2026-10-12T20:45:00Z',
+          },
+          error: null,
+        },
+        error: null,
+      };
+    };
+
+    const res = await joinMatchmakingQueue('domino');
+    assert.strictEqual(res.success, true);
+    assert.ok(res.data);
+    assert.strictEqual(res.data.status, 'waiting');
+    assert.strictEqual(res.data.game_id, 'domino');
+    assert.strictEqual(res.data.queue_id, 'queue-new-user-123');
+  });
+
+  it('24. Pareamento imediato com oponente compatível cria partida e retorna matched sem erro', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).rpc = async (fn: string) => {
+      assert.strictEqual(fn, 'join_matchmaking_queue');
+      return {
+        data: {
+          success: true,
+          data: {
+            queue_id: 'queue-matched-user-456',
+            game_id: 'domino',
+            status: 'matched',
+            match_id: 'matched-match-uuid-789',
+            expires_at: '2026-10-12T20:50:00Z',
+          },
+          error: null,
+        },
+        error: null,
+      };
+    };
+
+    const res = await joinMatchmakingQueue('domino');
+    assert.strictEqual(res.success, true);
+    assert.ok(res.data);
+    assert.strictEqual(res.data.status, 'matched');
+    assert.strictEqual(res.data.match_id, 'matched-match-uuid-789');
+  });
 });

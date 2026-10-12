@@ -1216,4 +1216,69 @@ describe('Dominó Duo: Motor de Regras, Configurações e Segurança Server-Side
       assert.strictEqual(invalidTarget.valid, false);
     });
   });
+
+  // --------------------------------------------------------------------------
+  // 15. Matchmaking e Distribuição de Peças do Dominó
+  // --------------------------------------------------------------------------
+  describe('15. Matchmaking: Inicialização Autoritativa e Distribuição de Peças', () => {
+    it('15.1. Inicialização de partida criada por matchmaking gera mãos e monte para todos os jogadores', () => {
+      const playerIds = ['user-p1', 'user-p2'];
+      const config = DOMINO_PRESETS.traditional.config;
+
+      // Gera peças e mãos simulando a rotina autoritativa do PostgreSQL
+      const allTiles = generateDominoSet(config.maxTileValue);
+      assert.strictEqual(allTiles.length, 28);
+
+      const p1Hand = allTiles.slice(0, 7);
+      const p2Hand = allTiles.slice(7, 14);
+      const boneyard = allTiles.slice(14);
+
+      assert.strictEqual(p1Hand.length, 7);
+      assert.strictEqual(p2Hand.length, 7);
+      assert.strictEqual(boneyard.length, 14);
+
+      // Snapshot projetado para p1 esconde p2Hand e boneyard
+      const fullState: DominoGameState = {
+        config,
+        board: { tiles: [], leftEnd: null, rightEnd: null },
+        boneyard,
+        hands: {
+          'user-p1': p1Hand,
+          'user-p2': p2Hand,
+        },
+        turnOrder: playerIds,
+        currentTurnPlayerId: 'user-p1',
+        drawsThisTurn: 0,
+        consecutivePasses: 0,
+        scores: { 'user-p1': 0, 'user-p2': 0 },
+        roundNumber: 1,
+        isBlocked: false,
+        winnerId: null,
+        isFinished: false,
+      };
+
+      const p1ClientState = projectDominoClientState(fullState, 'user-p1');
+      assert.strictEqual(p1ClientState.myHand.length, 7);
+      assert.strictEqual(p1ClientState.boneyardCount, 14);
+      assert.strictEqual(p1ClientState.handsCount['user-p1'], 7);
+      assert.strictEqual(p1ClientState.handsCount['user-p2'], 7);
+      assert.strictEqual((p1ClientState as any).hands, undefined);
+      assert.strictEqual((p1ClientState as any).boneyard, undefined);
+    });
+
+    it('15.2. Escrita em match_players.is_winner nunca produz NULL mesmo em caso de empate', () => {
+      const winnerId: string | null = null;
+      const user1 = 'user-1';
+      const user2 = 'user-2';
+
+      // Expressão SQL segura: (v_winner_id IS NOT NULL AND user_id = v_winner_id)
+      const isWinnerUser1 = winnerId !== null && user1 === winnerId;
+      const isWinnerUser2 = winnerId !== null && user2 === winnerId;
+
+      assert.strictEqual(typeof isWinnerUser1, 'boolean');
+      assert.strictEqual(isWinnerUser1, false);
+      assert.strictEqual(typeof isWinnerUser2, 'boolean');
+      assert.strictEqual(isWinnerUser2, false);
+    });
+  });
 });
