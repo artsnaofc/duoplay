@@ -3,8 +3,8 @@ import { Gamepad2, ShieldCheck, Smartphone, Users } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="border-t border-slate-800/80 bg-slate-950 mt-24 text-slate-400">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <footer className="border-t border-slate-800/80 bg-slate-950 mt-16 sm:mt-24 text-slate-400 pb-24 md:pb-0">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           {/* Brand Column */}
           <div className="space-y-3">

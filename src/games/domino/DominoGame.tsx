@@ -563,7 +563,7 @@ export const DominoGame: React.FC<DominoGameProps> = ({
         </div>
 
         {/* HUD DOS OPONENTES */}
-        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none sm:flex-wrap sm:justify-start pt-1">
           {snapshot.players.map((p, idx) => {
             const isItMyPlayer = p.userId === currentUserId;
             const isTurn = p.userId === snapshot.currentTurnPlayerId;
@@ -656,7 +656,7 @@ export const DominoGame: React.FC<DominoGameProps> = ({
       )}
 
       {/* 2. TABULEIRO CENTRAL DE JOGO (CHAIN / CADEIA DE PEÇAS) */}
-      <main className="my-4 flex-1 flex flex-col justify-center items-center relative min-h-[300px] sm:min-h-[360px] p-4 rounded-2xl bg-slate-950/60 border border-slate-900 overflow-hidden shadow-inner">
+      <main className="my-3 sm:my-4 flex-1 flex flex-col justify-center items-center relative min-h-[220px] sm:min-h-[360px] p-3 sm:p-4 rounded-2xl bg-slate-950/60 border border-slate-900 overflow-hidden shadow-inner">
         {/* Glow de fundo */}
         <div className="absolute inset-0 bg-radial from-amber-950/15 via-transparent to-transparent pointer-events-none" />
 
@@ -810,8 +810,8 @@ export const DominoGame: React.FC<DominoGameProps> = ({
         </div>
 
         {/* DOCK DA MÃO DO JOGADOR */}
-        <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl">
-          <div className="flex items-center justify-start sm:justify-center gap-2.5 overflow-x-auto py-1 scrollbar-thin">
+        <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl">
+          <div className="flex items-center justify-start sm:justify-center gap-2 sm:gap-2.5 overflow-x-auto py-1 scrollbar-none touch-pan-x snap-x snap-mandatory">
             {myHand.length === 0 ? (
               <div className="py-6 text-center text-xs text-slate-500">
                 Você não possui peças na mão.
@@ -824,7 +824,7 @@ export const DominoGame: React.FC<DominoGameProps> = ({
                 const isSelected = selectedTile ? areTilesEqual(tile, selectedTile) : false;
 
                 return (
-                  <div key={`${tile[0]}-${tile[1]}-${idx}`} className="shrink-0 flex flex-col items-center gap-1">
+                  <div key={`${tile[0]}-${tile[1]}-${idx}`} className="shrink-0 snap-center flex flex-col items-center gap-1">
                     <DominoTileView
                       tile={tile}
                       isPlayable={isPlayable}
@@ -844,16 +844,16 @@ export const DominoGame: React.FC<DominoGameProps> = ({
 
         {/* Instrução contextual para o jogador */}
         {selectedTile && (
-          <div className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-800/80 text-blue-200 text-xs flex items-center justify-between animate-fade-in">
-            <span>
-              Peça <code className="font-bold">[{selectedTile[0]}|{selectedTile[1]}]</code> selecionada. Escolha a ponta no tabuleiro para encaixar:
+          <div className="p-3 rounded-xl bg-blue-950/70 border border-blue-800/80 text-blue-200 text-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 animate-fade-in">
+            <span className="leading-snug">
+              Peça <code className="font-bold text-white bg-blue-900/80 px-1.5 py-0.5 rounded">[{selectedTile[0]}|{selectedTile[1]}]</code> selecionada. Escolha a ponta para encaixar:
             </span>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               {isSelectedTileCanLeft && (
                 <button
                   type="button"
                   onClick={() => handlePlayTile(selectedTile, 'left')}
-                  className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 font-bold text-[11px] text-white"
+                  className="flex-1 sm:flex-initial min-h-[36px] px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 font-bold text-xs text-white shadow-md active:scale-95 transition-transform"
                 >
                   Ponta Esquerda
                 </button>
@@ -862,7 +862,7 @@ export const DominoGame: React.FC<DominoGameProps> = ({
                 <button
                   type="button"
                   onClick={() => handlePlayTile(selectedTile, 'right')}
-                  className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 font-bold text-[11px] text-white"
+                  className="flex-1 sm:flex-initial min-h-[36px] px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 font-bold text-xs text-white shadow-md active:scale-95 transition-transform"
                 >
                   Ponta Direita
                 </button>
@@ -870,7 +870,7 @@ export const DominoGame: React.FC<DominoGameProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedTile(null)}
-                className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-300"
+                className="min-h-[36px] px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 active:scale-95 transition-transform"
               >
                 Cancelar
               </button>

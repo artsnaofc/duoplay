@@ -212,8 +212,12 @@ export const ReceivedGameInviteModal: React.FC<ReceivedGameInviteModalProps> = (
   const progressPercent = Math.min(100, Math.max(0, (secondsRemaining / 15) * 100));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div
+      onClick={onDecline}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+    >
       <div
+        onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm bg-slate-900 border-2 border-blue-500/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"

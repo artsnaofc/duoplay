@@ -39,8 +39,12 @@ export const SelectGameForRoomModal: React.FC<SelectGameForRoomModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="select-game-room-title"
+      onClick={onClose}
     >
-      <div className="w-full max-w-md max-h-[90vh] flex flex-col rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl relative overflow-hidden">
+      <div
+        className="w-full max-w-md max-h-[90vh] flex flex-col rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl relative overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Glow Superior */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 z-10" />
 

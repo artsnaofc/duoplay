@@ -110,14 +110,17 @@ export const JoinRoomByCodeModal: React.FC<JoinRoomByCodeModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="join-room-title"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isLoading) {
+      onClick={() => {
+        if (!isLoading) {
           onClose();
         }
       }}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-5 sm:p-6 cursor-default overflow-hidden">
+      <div
+        className="relative w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-5 sm:p-6 cursor-default overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Glow Superior */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
 

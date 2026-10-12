@@ -154,8 +154,12 @@ export const ChatModal: React.FC<ChatModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="chat-modal-title"
+      onClick={onClose}
     >
-      <div className="flex flex-col w-full h-full md:h-[620px] md:max-w-4xl bg-slate-900 border-0 md:border md:border-slate-800 md:rounded-2xl shadow-2xl overflow-hidden text-slate-100">
+      <div
+        className="flex flex-col w-full h-full md:h-[620px] md:max-w-4xl bg-slate-900 border-0 md:border md:border-slate-800 md:rounded-2xl shadow-2xl overflow-hidden text-slate-100"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header Principal do Modal */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-950/60">
           <div className="flex items-center gap-2">

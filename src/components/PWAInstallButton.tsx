@@ -16,11 +16,12 @@ export const PWAInstallButton: React.FC = () => {
     return (
       <button
         onClick={install}
-        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-blue-400 focus-visible:outline-offset-2"
+        className="inline-flex items-center justify-center gap-1.5 p-2 md:px-3 md:py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-blue-400"
         aria-label="Instalar DuoPlay-Online como aplicativo"
+        title="Instalar App no dispositivo"
       >
-        <Download className="w-3.5 h-3.5" aria-hidden="true" />
-        <span>Instalar App</span>
+        <Download className="w-4 h-4 shrink-0" aria-hidden="true" />
+        <span className="hidden md:inline">Instalar App</span>
       </button>
     );
   }
@@ -31,11 +32,12 @@ export const PWAInstallButton: React.FC = () => {
       <>
         <button
           onClick={() => setShowIOSModal(true)}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors focus-visible:outline-2 focus-visible:outline-blue-400 focus-visible:outline-offset-2"
+          className="inline-flex items-center justify-center gap-1.5 p-2 md:px-3 md:py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors focus-visible:outline-2 focus-visible:outline-blue-400"
           aria-label="Instruções de instalação para iOS"
+          title="Instalar no iPhone / iPad"
         >
-          <Smartphone className="w-3.5 h-3.5" aria-hidden="true" />
-          <span>Instalar no iOS</span>
+          <Smartphone className="w-4 h-4 text-blue-400 shrink-0" aria-hidden="true" />
+          <span className="hidden md:inline">Instalar no iOS</span>
         </button>
 
         {showIOSModal && (

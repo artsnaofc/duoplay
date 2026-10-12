@@ -138,8 +138,12 @@ export const MatchHistoryModal: React.FC<MatchHistoryModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="history-modal-title"
+      onClick={onClose}
     >
-      <div className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden">
+      <div
+        className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2.5">

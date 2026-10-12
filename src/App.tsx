@@ -26,6 +26,9 @@ import { PlayerProfileModal } from '@/components/profile/PlayerProfileModal';
 import { PublicPlayerProfileModal } from '@/components/profile/PublicPlayerProfileModal';
 import { LeaderboardModal } from '@/components/leaderboard/LeaderboardModal';
 import { FriendsModal } from '@/components/social/FriendsModal';
+import { BottomNav } from '@/components/BottomNav';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { useSocial } from '@/hooks/useSocial';
 import {
   getActiveMatchForCurrentUser,
   abandonMatch,
@@ -46,6 +49,9 @@ import { ReceivedGameInviteModal } from '@/components/social/ReceivedGameInviteM
 import { ChatModal } from '@/components/chat/ChatModal';
 import { useActiveWaitingRoom } from '@/hooks/useActiveWaitingRoom';
 import { useNotifications } from '@/hooks/useNotifications';
+import { FriendsPage } from '@/pages/FriendsPage';
+import { LeaderboardPage } from '@/pages/LeaderboardPage';
+import { ProfilePage } from '@/pages/ProfilePage';
 import type { Friend } from '@/types/social';
 import type { NotificationItem } from '@/types/notifications';
 
@@ -53,6 +59,7 @@ function MainApp() {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+  const [currentRoute, setCurrentRoute] = useState<'home' | 'friends' | 'leaderboard' | 'profile'>('home');
   const [isLobbyOpen, setIsLobbyOpen] = useState(false);
   const [isSelectGameRoomOpen, setIsSelectGameRoomOpen] = useState(false);
   const [isJoinByCodeOpen, setIsJoinByCodeOpen] = useState(false);
@@ -64,8 +71,13 @@ function MainApp() {
   const [isFriendsOpen, setIsFriendsOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [viewingPublicUserId, setViewingPublicUserId] = useState<string | null>(null);
+  const [profileTargetUserId, setProfileTargetUserId] = useState<string | null>(null);
   const [initialRoomCode, setInitialRoomCode] = useState<string | null>(null);
   const [lobbyInitialMode, setLobbyInitialMode] = useState<'create' | 'join' | 'waiting' | 'options'>('create');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Hook social para notificações em tempo real de amigos
+  const { pendingCount } = useSocial();
 
   // Hook central de Matchmaking Multijogo Simultâneo
   const multiMatchmaking = useMultiMatchmaking((matchId) => {
@@ -393,10 +405,13 @@ function MainApp() {
           setIsMatchmakingOpen(true);
         }}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenProfile={() => setIsProfileOpen(true)}
-        onOpenFriends={() => setIsFriendsOpen(true)}
+        onOpenProfile={() => {
+          setProfileTargetUserId(null);
+          setCurrentRoute('profile');
+        }}
+        onOpenFriends={() => setCurrentRoute('friends')}
         onOpenChat={() => setIsChatOpen(true)}
-        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
+        onOpenLeaderboard={() => setCurrentRoute('leaderboard')}
         unreadChatCount={chat.totalUnreadCount}
         hasActiveMatch={Boolean(recoveryMatchInfo)}
         onResumeActiveMatch={() => setIsRecoveryModalOpen(true)}
@@ -474,12 +489,56 @@ function MainApp() {
             onLeave={handleLeaveMatch}
             onViewHistory={() => setIsHistoryOpen(true)}
             onStartRematch={handleStartMatch}
-            onViewPlayerProfile={(userId) => setViewingPublicUserId(userId)}
+            onViewPlayerProfile={(userId) => {
+              setProfileTargetUserId(userId);
+              setCurrentRoute('profile');
+            }}
             onPlayAgain={(gameId) => {
               handleLeaveMatch();
               if (gameId) setSelectedMMGameId(gameId);
               setIsMatchmakingOpen(true);
             }}
+          />
+        ) : currentRoute === 'friends' ? (
+          <FriendsPage
+            onNavigateHome={() => setCurrentRoute('home')}
+            onViewUserProfile={(userId) => {
+              setProfileTargetUserId(userId);
+              setCurrentRoute('profile');
+            }}
+            onPlayWithFriend={(friend) => {
+              setSelectedMMGameId('tic_tac_toe');
+              setIsMatchmakingOpen(true);
+            }}
+            onOpenChatWithFriend={(friendUserId) => {
+              setIsChatOpen(true);
+            }}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
+        ) : currentRoute === 'leaderboard' ? (
+          <LeaderboardPage
+            onNavigateHome={() => setCurrentRoute('home')}
+            onSelectPlayer={(userId) => {
+              setProfileTargetUserId(userId);
+              setCurrentRoute('profile');
+            }}
+          />
+        ) : currentRoute === 'profile' ? (
+          <ProfilePage
+            onNavigateHome={() => {
+              setProfileTargetUserId(null);
+              setCurrentRoute('home');
+            }}
+            targetUserId={profileTargetUserId}
+            onOpenHistory={() => setIsHistoryOpen(true)}
+            onPlayWithPlayer={(userId) => {
+              setSelectedMMGameId('tic_tac_toe');
+              setIsMatchmakingOpen(true);
+            }}
+            onOpenChatWithPlayer={(userId) => {
+              setIsChatOpen(true);
+            }}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
           />
         ) : (
           <HomePage
@@ -498,8 +557,11 @@ function MainApp() {
             }}
             onOpenJoinByCode={() => setIsJoinByCodeOpen(true)}
             onOpenHistory={() => setIsHistoryOpen(true)}
-            onOpenProfile={() => setIsProfileOpen(true)}
-            onOpenFriends={() => setIsFriendsOpen(true)}
+            onOpenProfile={() => {
+              setProfileTargetUserId(null);
+              setCurrentRoute('profile');
+            }}
+            onOpenFriends={() => setCurrentRoute('friends')}
             hasActiveMatch={Boolean(recoveryMatchInfo)}
             onResumeActiveMatch={() => setIsRecoveryModalOpen(true)}
             activeMatchmakingCount={multiMatchmaking.activeCount}
@@ -510,8 +572,51 @@ function MainApp() {
       {/* Platform Footer */}
       <Footer />
 
+      {/* Mobile Bottom Navigation Bar (Fase Mobile-First Polish) */}
+      {!activeMatchId && (
+        <BottomNav
+          onOpenHome={() => {
+            setCurrentRoute('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onOpenMatchmaking={() => {
+            setSelectedMMGameId(null);
+            setIsMatchmakingOpen(true);
+          }}
+          onOpenFriends={() => {
+            setCurrentRoute('friends');
+          }}
+          onOpenLeaderboard={() => {
+            setCurrentRoute('leaderboard');
+          }}
+          onOpenProfile={() => {
+            setProfileTargetUserId(null);
+            setCurrentRoute('profile');
+          }}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          pendingFriendsCount={pendingCount}
+          hasActiveMatch={Boolean(recoveryMatchInfo)}
+          onResumeActiveMatch={() => {
+            if (recoveryMatchInfo) {
+              handleResumeRecovery(recoveryMatchInfo.match_id);
+            } else {
+              setIsRecoveryModalOpen(true);
+            }
+          }}
+          activeMatchmakingCount={multiMatchmaking.activeCount}
+          currentSection={currentRoute}
+        />
+      )}
+
       {/* PWA Offline Connectivity Indicator */}
       <OfflineIndicator />
+
+      {/* Auth Modal para Login / Registro Global */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        initialMode="login"
+        onClose={() => setIsAuthModalOpen(false)}
+      />
 
       {/* Modal de Matchmaking Multijogo Simultâneo Autoritatívo */}
       <MultiMatchmakingModal

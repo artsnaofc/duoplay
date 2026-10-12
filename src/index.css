@@ -3,31 +3,71 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    background-color: #090d16;
+    background-color: #070a12;
     color: #f1f5f9;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
+    padding-left: var(--sal);
+    padding-right: var(--sar);
   }
 
-  /* Custom scrollbar for clean desktop & mobile web */
+  /* Interactive elements tap responsiveness */
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  /* Custom scrollbar for desktop & modern mobile browsers */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #090d16;
+    background: #070a12;
   }
   ::-webkit-scrollbar-thumb {
     background: #1e293b;
-    border-radius: 3px;
+    border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #334155;
+  }
+}
+
+@layer utilities {
+  /* Safe-area utilities for notched/island mobile displays */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+  .pt-safe {
+    padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  }
+  .min-h-screen-safe {
+    min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Utility for hiding scrollbar while preserving smooth touch panning */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }

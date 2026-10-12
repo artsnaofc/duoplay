@@ -167,9 +167,13 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="friends-modal-title"
+      onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in"
     >
-      <div className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden">
+      <div
+        className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Top Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2.5">

@@ -228,8 +228,12 @@ export const PublicMatchmakingModal: React.FC<PublicMatchmakingModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="matchmaking-modal-title"
+      onClick={onClose}
     >
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-8 space-y-6 shadow-2xl relative">
+      <div
+        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-8 space-y-6 shadow-2xl relative"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Ambient Glow Header */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500" />
 

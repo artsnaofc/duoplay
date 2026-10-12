@@ -171,8 +171,12 @@ export const PublicPlayerProfileModal: React.FC<PublicPlayerProfileModalProps> =
       role="dialog"
       aria-modal="true"
       aria-labelledby="public-profile-title"
+      onClick={onClose}
     >
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 space-y-6 shadow-2xl relative overflow-hidden">
+      <div
+        className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 space-y-6 shadow-2xl relative overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Top Accent Strip */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500" />
 

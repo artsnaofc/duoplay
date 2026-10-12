@@ -193,8 +193,10 @@ export const MatchResultModal: React.FC<MatchResultModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="result-modal-title"
+      onClick={onGoHome}
     >
       <div
+        onClick={(e) => e.stopPropagation()}
         className={`w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border p-5 sm:p-8 space-y-6 shadow-2xl transition-all animate-in zoom-in-95 duration-300 ${
           theme === 'win'
             ? 'bg-gradient-to-b from-emerald-950/90 via-slate-900 to-slate-950 border-emerald-500/50 ring-2 ring-emerald-500/30 shadow-[0_0_50px_rgba(16,185,129,0.25)]'

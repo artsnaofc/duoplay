@@ -36,11 +36,11 @@ export const GameCard: React.FC<GameCardProps> = ({
   };
 
   return (
-    <article className="group relative flex flex-col rounded-2xl border border-slate-800/90 bg-slate-900/80 p-5 sm:p-6 transition-all duration-300 hover:border-slate-700 hover:shadow-2xl hover:shadow-blue-950/20 overflow-hidden">
+    <article className="group relative flex flex-col rounded-2xl border border-slate-800/90 bg-slate-900/80 p-4 sm:p-5 lg:p-6 transition-all duration-300 hover:border-slate-700 hover:shadow-2xl hover:shadow-blue-950/20 overflow-hidden">
       {/* Visual Artwork Banner (Se fornecido) */}
       {imageSrc ? (
 
-<div className="relative isolate mb-5 h-44 w-full shrink-0 overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950 shadow-lg shadow-black/20 sm:h-48">
+<div className="relative isolate mb-4 sm:mb-5 h-36 sm:h-44 w-full shrink-0 overflow-hidden rounded-xl border border-slate-700/70 bg-slate-950 shadow-lg shadow-black/20">
   {/* Imagem de capa */}
   <img
     src={imageSrc}
@@ -120,7 +120,7 @@ export const GameCard: React.FC<GameCardProps> = ({
             <button
               type="button"
               onClick={() => onMatchmaking?.(game.id)}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-md shadow-blue-950/40 transition-all flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-blue-400 active:scale-95"
+              className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-md shadow-blue-950/40 transition-all flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-blue-400 active:scale-95"
             >
               <Swords className="w-4 h-4 shrink-0" />
               <span className="whitespace-nowrap">Encontrar partida</span>
@@ -130,7 +130,7 @@ export const GameCard: React.FC<GameCardProps> = ({
               <button
                 type="button"
                 onClick={() => onCreateRoom(game.id)}
-                className="py-2.5 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-2 focus-visible:outline-slate-400 active:scale-95"
+                className="min-h-[44px] py-2.5 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-2 focus-visible:outline-slate-400 active:scale-95"
                 title="Criar sala com código privado"
               >
                 <KeyRound className="w-3.5 h-3.5 text-slate-400 shrink-0" />

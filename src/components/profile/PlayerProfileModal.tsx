@@ -178,8 +178,12 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="player-profile-modal-title"
+      onClick={onClose}
     >
-      <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 sm:p-7 space-y-6 shadow-2xl relative my-8 overflow-hidden">
+      <div
+        className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 sm:p-7 space-y-6 shadow-2xl relative my-8 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Glow Header */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
 

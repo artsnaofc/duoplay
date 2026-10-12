@@ -100,7 +100,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   return (
-    <div className="space-y-12 sm:space-y-16 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+    <div className="space-y-8 sm:space-y-12 lg:space-y-16 pb-28 sm:pb-20 max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6">
       {/* 1. User Welcome & Active Match Banner */}
       {isAuthenticated && (
         <section className="space-y-4 animate-fade-in">
@@ -231,13 +231,13 @@ export const HomePage: React.FC<HomePageProps> = ({
       )}
 
       {/* 2. Hero Lobby Banner */}
-      <section id="hero" className="relative rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 via-slate-900/60 to-slate-950/90 p-6 sm:p-10 lg:p-12 shadow-2xl overflow-hidden">
+      <section id="hero" className="relative rounded-2xl sm:rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 via-slate-900/60 to-slate-950/90 p-5 sm:p-10 lg:p-12 shadow-2xl overflow-hidden">
         <div
           className="absolute -top-24 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-gradient-to-b from-blue-600/20 via-indigo-600/10 to-transparent blur-3xl pointer-events-none"
           aria-hidden="true"
         />
 
-        <div className="relative z-10 max-w-3xl space-y-6">
+        <div className="relative z-10 max-w-3xl space-y-5 sm:space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-950/60 border border-blue-800/60 text-xs text-blue-300 font-bold">
             <Sparkles className="w-3.5 h-3.5 text-blue-400" />
             <span>Lobby de Jogos Multiplayer</span>
@@ -254,31 +254,31 @@ export const HomePage: React.FC<HomePageProps> = ({
             Encontre um oponente público em segundos ou crie uma sala privada com código para seus amigos.
           </p>
 
-          <div className="pt-2 flex flex-wrap items-center gap-3">
+          <div className="pt-2 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3">
             <button
               type="button"
               onClick={() => handleMatchmakingAction()}
-              className="py-3 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-blue-950/60 transition-all flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-blue-400 active:scale-95"
+              className="min-h-[44px] py-3 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-blue-950/60 transition-all flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-blue-400 active:scale-95"
             >
-              <Swords className="w-4 h-4" />
+              <Swords className="w-4 h-4 shrink-0" />
               <span>Encontrar Partida Rápida</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleCreateRoomAction()}
-              className="py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-slate-400 active:scale-95"
+              className="min-h-[44px] py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-slate-400 active:scale-95"
             >
-              <KeyRound className="w-4 h-4 text-slate-400" />
+              <KeyRound className="w-4 h-4 text-slate-400 shrink-0" />
               <span>Criar Sala Privada</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleJoinWithCodeAction()}
-              className="py-3 px-5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-slate-400 active:scale-95"
+              className="min-h-[44px] py-3 px-5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-slate-400 active:scale-95"
             >
-              <LogIn className="w-4 h-4 text-blue-400" />
+              <LogIn className="w-4 h-4 text-blue-400 shrink-0" />
               <span>Entrar com código</span>
             </button>
           </div>
@@ -286,8 +286,8 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* 3. Games Catalog Section */}
-      <section id="games" className="space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+      <section id="games" className="space-y-4 sm:space-y-6">
+        <div className="flex items-center justify-between border-b border-slate-800/80 pb-3 sm:pb-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
               Catálogo de Jogos
@@ -298,7 +298,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {GAMES.map((game) => (
             <GameCard
               key={game.id}
