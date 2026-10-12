@@ -100,11 +100,11 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   return (
-    <div className="space-y-12 sm:space-y-16 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+    <div className="mx-auto w-full max-w-7xl space-y-8 px-[var(--dp-page-gutter)] pb-24 pt-4 sm:space-y-10 sm:pb-16 sm:pt-6">
       {/* 1. User Welcome & Active Match Banner */}
       {isAuthenticated && (
         <section className="space-y-4 animate-fade-in">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl relative overflow-hidden">
+          <div className="dp-panel relative flex flex-col items-start justify-between gap-4 overflow-hidden p-4 sm:flex-row sm:items-center sm:p-5">
             <div
               className={`flex items-center gap-3.5 ${onOpenProfile ? 'cursor-pointer group' : ''}`}
               onClick={onOpenProfile}
@@ -231,7 +231,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       )}
 
       {/* 2. Hero Lobby Banner */}
-      <section id="hero" className="relative rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900/90 via-slate-900/60 to-slate-950/90 p-6 sm:p-10 lg:p-12 shadow-2xl overflow-hidden">
+      <section id="hero" className="dp-panel relative overflow-hidden p-5 sm:rounded-3xl sm:p-8 lg:p-12">
         <div
           className="absolute -top-24 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-gradient-to-b from-blue-600/20 via-indigo-600/10 to-transparent blur-3xl pointer-events-none"
           aria-hidden="true"
