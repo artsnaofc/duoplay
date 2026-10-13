@@ -179,9 +179,21 @@ function MainApp() {
               Boolean(sessionStorage.getItem(seenKey));
           }
 
-          if (!isSeen) {
+          // Se a partida terminou há mais de 3 minutos, consideramos antiga e não mostramos no startup
+          const finishedAtTime = new Date(lastMatch.finished_at || lastMatch.started_at).getTime();
+          const isOld = Date.now() - finishedAtTime > 3 * 60 * 1000;
+
+          if (!isSeen && !isOld) {
             setCompletedMatchRecovery(lastMatch);
             setIsCompletedResultOpen(true);
+          } else if (!isSeen && isOld) {
+            // Marca automaticamente como vista se for antiga para evitar requisições repetidas
+            if (typeof window !== 'undefined') {
+              const seenKey = `seen_match_result_${currentUserId}_${lastMatch.match_id}`;
+              localStorage.setItem(seenKey, 'true');
+              sessionStorage.setItem(seenKey, 'true');
+            }
+            dismissMatchResult(lastMatch.match_id).catch(() => {});
           }
         }
       }
