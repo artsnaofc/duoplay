@@ -564,52 +564,52 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
     }
   };
 
-  // Cores visuais consistentes com Design System e contraste alto
+  // Cores visuais aprimoradas com estética gamer arcade premium
   const getCardColorTheme = (colorCode: string) => {
     switch (colorCode) {
       case 'red':
         return {
-          bg: 'from-red-600 via-rose-700 to-red-900',
-          border: 'border-red-500/70',
-          glow: 'shadow-[0_0_20px_rgba(239,68,68,0.35)]',
-          badge: 'bg-red-500/20 text-red-400 border-red-500/40',
+          bg: 'from-red-500 via-rose-600 to-red-950',
+          border: 'border-red-400/80',
+          glow: 'shadow-[0_0_25px_rgba(239,68,68,0.45)]',
+          badge: 'bg-red-500/20 text-red-300 border-red-500/40',
           textColor: 'text-white',
           label: 'Vermelho',
         };
       case 'blue':
         return {
-          bg: 'from-blue-600 via-sky-700 to-blue-900',
-          border: 'border-blue-500/70',
-          glow: 'shadow-[0_0_20px_rgba(59,130,246,0.35)]',
-          badge: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+          bg: 'from-blue-500 via-sky-600 to-blue-950',
+          border: 'border-blue-400/80',
+          glow: 'shadow-[0_0_25px_rgba(59,130,246,0.45)]',
+          badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
           textColor: 'text-white',
           label: 'Azul',
         };
       case 'green':
         return {
-          bg: 'from-emerald-600 via-teal-700 to-emerald-900',
-          border: 'border-emerald-500/70',
-          glow: 'shadow-[0_0_20px_rgba(16,185,129,0.35)]',
-          badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+          bg: 'from-emerald-500 via-teal-600 to-emerald-950',
+          border: 'border-emerald-400/80',
+          glow: 'shadow-[0_0_25px_rgba(16,185,129,0.45)]',
+          badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
           textColor: 'text-white',
           label: 'Verde',
         };
       case 'yellow':
         return {
-          bg: 'from-amber-400 via-yellow-500 to-amber-700',
-          border: 'border-yellow-400/80',
-          glow: 'shadow-[0_0_20px_rgba(245,158,11,0.35)]',
-          badge: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+          bg: 'from-amber-300 via-yellow-400 to-amber-700',
+          border: 'border-yellow-200/90',
+          glow: 'shadow-[0_0_25px_rgba(245,158,11,0.45)]',
+          badge: 'bg-yellow-500/20 text-yellow-200 border-yellow-500/40',
           textColor: 'text-slate-950 font-black',
           label: 'Amarelo',
         };
       case 'wild':
       default:
         return {
-          bg: 'from-slate-900 via-purple-950 to-slate-950',
-          border: 'border-purple-500/60',
-          glow: 'shadow-[0_0_25px_rgba(168,85,247,0.35)]',
-          badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+          bg: 'from-slate-900 via-purple-900 to-indigo-950',
+          border: 'border-purple-400/80',
+          glow: 'shadow-[0_0_30px_rgba(168,85,247,0.5)]',
+          badge: 'bg-purple-500/20 text-purple-200 border-purple-500/40',
           textColor: 'text-amber-300',
           label: 'Coringa',
         };
@@ -803,7 +803,7 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
       </div>
 
       {/* 2. ADVERSÁRIOS (STRIP COMPACTO RESPONSIVO) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {opponents.map((opp) => {
           const oppProfile = opponentsProfiles[opp.userId];
           const isOppTurn = state?.current_turn_player_id === opp.userId && !isFinished;
@@ -814,83 +814,74 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
             <div
               key={opp.userId}
               onClick={() => onViewPlayerProfile?.(opp.userId)}
-              className={`p-2.5 rounded-2xl border transition-all flex flex-col justify-between gap-2 relative overflow-hidden cursor-pointer ${
+              className={`p-3 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 relative overflow-hidden cursor-pointer ${
                 isOppTurn
-                  ? 'bg-purple-950/40 border-purple-500/70 shadow-[0_0_14px_rgba(168,85,247,0.25)] ring-1 ring-purple-500/40'
-                  : 'bg-slate-900/70 border-slate-800/80 hover:border-slate-700'
+                  ? 'bg-purple-950/60 border-purple-500/80 shadow-[0_0_20px_rgba(168,85,247,0.35)] ring-2 ring-purple-500/50'
+                  : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
               }`}
             >
               {isOppTurn && (
-                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 animate-pulse" />
+                <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 animate-pulse" />
               )}
 
-              <div className="flex items-center gap-2 min-w-0">
-                <PlayerAvatar
-                  avatarUrl={oppProfile?.avatarUrl}
-                  displayName={oppProfile?.displayName || `Jogador ${opp.slot}`}
-                  username={oppProfile?.username}
-                  size="xs"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-white truncate">
-                    {oppProfile?.displayName || `Jogador ${opp.slot}`}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <PlayerAvatar
+                    avatarUrl={oppProfile?.avatarUrl}
+                    displayName={oppProfile?.displayName || `Jogador ${opp.slot}`}
+                    username={oppProfile?.username}
+                    size="sm"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-extrabold text-white truncate">
+                      {oppProfile?.displayName || `Jogador ${opp.slot}`}
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {isOppDisconnected ? '🔴 Desconectado' : isOppTurn ? '🟣 Jogando' : '🟢 Online'}
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-400">Slot {opp.slot}</div>
+                </div>
+
+                {/* Quantidade de Cartas Muito Visível */}
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-950 border border-blue-500/60 text-blue-200 shadow-md shrink-0">
+                  <Layers className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span className="font-mono font-black text-base text-white">{oppCardCount}</span>
+                  <span className="text-[10px] uppercase font-bold text-blue-300">cartas</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-800/60">
-                <div className="flex items-center gap-1.5 font-mono font-bold text-white">
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-950/90 border border-blue-500/40 text-blue-300 shadow-sm">
-                    <Layers className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                    <span className="font-black text-sm">{oppCardCount}</span>
-                    <span className="text-[10px] text-slate-400">cartas</span>
-                  </div>
-                  {oppCardCount <= 2 && (
-                    <span className="text-[9px] font-black text-amber-300 bg-amber-950/90 px-1.5 py-0.5 rounded-full border border-amber-600/60 animate-pulse">
-                      ⚠️ Quase DUO!
-                    </span>
-                  )}
-                </div>
+              {/* Seção inferior: Aviso Quase Duo e Botão de Contestação */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                {oppCardCount <= 2 ? (
+                  <span className="text-[10px] font-black text-amber-300 bg-amber-950/90 px-2.5 py-1 rounded-lg border border-amber-500/70 animate-pulse flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>{oppCardCount === 1 ? 'QUASE DUO (1 carta)!' : 'Quase Duo!'}</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-400">Em jogo</span>
+                )}
 
-                <div className="flex items-center gap-1">
-                  {/* Indicador e Contestação de Última Carta para Oponente com 1 carta */}
-                  {oppCardCount === 1 && (
-                    state?.last_card_declarations?.[opp.userId] ? (
-                      <span className="text-[10px] font-black text-amber-300 bg-amber-950/90 px-2 py-0.5 rounded-lg border border-amber-500/70 shadow">
-                        🃏 DUO Declarado
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleChallengeLastCard(opp.userId);
-                        }}
-                        disabled={submittingAction}
-                        className="text-[10px] font-black text-white bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 border-2 border-red-400/80 px-2.5 py-1 rounded-xl animate-pulse cursor-pointer shadow-lg shadow-red-950/50 active:scale-95 flex items-center gap-1"
-                        title="Contestar oponente que não declarou Última Carta (+2 penalidade)"
-                      >
-                        <span>⚡</span>
-                        <span>CONTESTAR (+2)</span>
-                      </button>
-                    )
-                  )}
-
-                  {isOppDisconnected ? (
-                    <span className="text-[9px] font-bold text-red-400 bg-red-950/60 px-1.5 py-0.5 rounded border border-red-900/40">
-                      Offline
-                    </span>
-                  ) : isOppTurn ? (
-                    <span className="text-[9px] font-bold text-purple-300 bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-800/60 animate-pulse">
-                      Jogando
+                {oppCardCount === 1 && (
+                  state?.last_card_declarations?.[opp.userId] ? (
+                    <span className="text-[10px] font-black text-amber-300 bg-amber-950/90 px-2.5 py-1 rounded-xl border border-amber-500/80 shadow">
+                      🃏 DUO Declarado
                     </span>
                   ) : (
-                    <span className="text-[9px] text-emerald-400 bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-900/30">
-                      Online
-                    </span>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleChallengeLastCard(opp.userId);
+                      }}
+                      disabled={submittingAction}
+                      className="text-xs font-black text-white bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 border-2 border-red-400 px-3 py-1.5 rounded-xl animate-bounce cursor-pointer shadow-xl shadow-red-950/80 active:scale-95 flex items-center gap-1.5"
+                      title="Contestar oponente que não declarou Última Carta (+2 penalidade)"
+                    >
+                      <span className="text-sm">⚡</span>
+                      <span>CONTESTAR DUO! (+2)</span>
+                    </button>
+                  )
+                )}
               </div>
             </div>
           );
@@ -1017,8 +1008,8 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
             className={`absolute -inset-10 opacity-15 blur-3xl pointer-events-none transition-all duration-700 bg-gradient-to-r ${activeColorTheme.bg}`}
           />
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-center justify-center relative z-10">
-            {/* 4.1. PILHA DE COMPRA (BARALHO) */}
+          <div className="grid grid-cols-2 gap-4 items-center justify-center relative z-10 max-w-md mx-auto">
+            {/* 4.1. PILHA DE COMPRA (BARALHO - COM DESTAQUE EVIDENTE QUANDO É SEU TURNO) */}
             <div className="flex flex-col items-center justify-center gap-2.5 text-center">
               <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
                 Pilha de Compra
@@ -1028,34 +1019,34 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
                 type="button"
                 onClick={handleDrawCard}
                 disabled={!isMyTurn || submittingAction}
-                className={`relative group w-28 h-40 sm:w-32 sm:h-44 rounded-2xl border-2 transition-all flex flex-col items-center justify-center shadow-xl ${
+                className={`relative group w-32 h-44 sm:w-36 sm:h-48 rounded-3xl border-2 transition-all flex flex-col items-center justify-center shadow-2xl ${
                   isMyTurn
-                    ? 'border-blue-500/70 bg-gradient-to-br from-blue-950 via-slate-900 to-slate-950 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(59,130,246,0.25)] ring-2 ring-blue-500/30 cursor-pointer'
+                    ? 'border-blue-400 bg-gradient-to-br from-blue-900 via-indigo-950 to-slate-950 hover:scale-105 active:scale-95 shadow-[0_0_35px_rgba(59,130,246,0.6)] ring-4 ring-blue-500/70 animate-bounce cursor-pointer'
                     : 'border-slate-800 bg-slate-950/60 opacity-60 cursor-not-allowed'
                 }`}
                 title={isMyTurn ? (isPendingPenalty ? 'Aceitar penalidade e comprar cartas devidas' : 'Toque para comprar carta') : 'Aguarde o seu turno'}
               >
                 {/* Camadas 3D do baralho */}
-                <div className="w-20 h-28 sm:w-24 sm:h-32 rounded-xl bg-gradient-to-br from-blue-700 via-indigo-900 to-slate-950 border border-blue-400/50 flex flex-col items-center justify-center shadow-inner">
-                  <span className="text-xl sm:text-2xl font-black font-mono tracking-widest text-blue-200">
+                <div className="w-24 h-32 sm:w-28 sm:h-36 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-800 to-slate-950 border border-blue-300/60 flex flex-col items-center justify-center shadow-inner">
+                  <span className="text-2xl sm:text-3xl font-black font-mono tracking-widest text-white drop-shadow">
                     DUO
                   </span>
-                  <span className="text-[9px] font-bold text-blue-300/70 mt-1 uppercase">
-                    {isPendingPenalty ? `+${pendingDraws}` : 'Comprar'}
+                  <span className="text-[10px] font-black text-blue-200 mt-1 uppercase tracking-wider">
+                    {isPendingPenalty ? `+${pendingDraws} CARTAS` : isMyTurn ? 'COMPRAR' : 'BARALHO'}
                   </span>
                 </div>
 
                 {isMyTurn && (
-                  <span className={`absolute -bottom-2 px-2.5 py-0.5 rounded-full text-white text-[9px] font-black uppercase tracking-wider shadow ${
-                    isPendingPenalty ? 'bg-amber-600' : 'bg-blue-600'
+                  <span className={`absolute -bottom-3 px-3 py-1 rounded-full text-white text-[10px] font-black uppercase tracking-wider shadow-lg ${
+                    isPendingPenalty ? 'bg-amber-600 ring-2 ring-amber-400 animate-pulse' : 'bg-blue-600 ring-2 ring-blue-400 animate-pulse'
                   }`}>
-                    {isPendingPenalty ? `+${pendingDraws} Cartas` : '+1 Carta'}
+                    {isPendingPenalty ? `⚡ COMPRAR +${pendingDraws}` : '👆 COMPRAR (+1)'}
                   </span>
                 )}
               </button>
 
-              <div className="text-[11px] font-mono text-slate-400">
-                {state?.deck?.length ?? 0} restantes
+              <div className="text-[11px] font-mono font-bold text-slate-300 mt-1">
+                {state?.deck?.length ?? 0} cartas restantes
               </div>
             </div>
 
@@ -1067,7 +1058,7 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
 
               {parsedTopCard ? (
                 <div
-                  className={`w-28 h-40 sm:w-32 sm:h-44 rounded-2xl border-2 bg-gradient-to-br p-3 flex flex-col justify-between shadow-2xl transition-all duration-300 ${
+                  className={`w-32 h-44 sm:w-36 sm:h-48 rounded-3xl border-2 bg-gradient-to-br p-3 flex flex-col justify-between shadow-2xl transition-all duration-300 ${
                     getCardColorTheme(parsedTopCard.color).bg
                   } ${getCardColorTheme(parsedTopCard.color).border} ${
                     getCardColorTheme(parsedTopCard.color).glow
@@ -1079,7 +1070,7 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
                     {parsedTopCard.color !== 'wild' ? parsedTopCard.color : 'Coringa'}
                   </div>
 
-                  <div className={`flex items-center justify-center my-auto ${getCardColorTheme(parsedTopCard.color).textColor}`}>
+                  <div className={`flex items-center justify-center my-auto ${getCardColorTheme(parsedTopCard.color).textColor} text-xl sm:text-2xl`}>
                     {renderCardSymbol(parsedTopCard.value)}
                   </div>
 
@@ -1088,35 +1079,19 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="w-28 h-40 sm:w-32 sm:h-44 rounded-2xl border border-dashed border-slate-800 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">
+                <div className="w-32 h-44 sm:w-36 sm:h-48 rounded-3xl border border-dashed border-slate-800 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">
                   Pilha Vazia
                 </div>
               )}
 
               {/* Indicador Evidente da Cor Ativa Atual */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 mt-1">
                 <span className="text-[10px] text-slate-400">Cor Ativa:</span>
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border shadow-sm ${activeColorTheme.badge}`}
+                  className={`px-3 py-0.5 rounded-full text-[10px] font-black uppercase border shadow-sm ${activeColorTheme.badge}`}
                 >
                   {activeColorTheme.label}
                 </span>
-              </div>
-            </div>
-
-            {/* 4.3. RESUMO E ESTATÍSTICAS RÁPIDAS DA MESA (COLUNA 3 EM DESKTOP) */}
-            <div className="col-span-2 sm:col-span-1 flex flex-col justify-center gap-2 p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-xs text-slate-300">
-              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                Configurações da Partida
-              </div>
-              <ul className="space-y-1 text-[11px] text-slate-400 leading-tight">
-                <li>• Acúmulo (+2/+4): <strong className="text-white">{cumulativeDrawEnabled ? 'Ativado' : 'Desativado'}</strong></li>
-                <li>• Mesmo número: <strong className="text-white">{allowSameNumberEnabled ? 'Ativado' : 'Desativado'}</strong></li>
-                <li>• Última Carta: <strong className="text-amber-300">Declaração Ativa</strong></li>
-              </ul>
-              <div className="pt-1 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500">
-                <span>Direção:</span>
-                <span className="font-bold text-slate-300">{state?.direction === 1 ? 'Horário' : 'Anti-horário'}</span>
               </div>
             </div>
           </div>
@@ -1171,8 +1146,8 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
             </div>
           </div>
 
-          {/* Área de Scroll Horizontal das Cartas */}
-          <div className="p-3 sm:p-4 rounded-3xl bg-slate-900/80 border border-slate-800 min-h-[12rem] flex items-center overflow-x-auto gap-3.5 scrollbar-thin scrollbar-thumb-slate-700">
+          {/* Área de Scroll Horizontal das Cartas (Otimizada Compacta) */}
+          <div className="p-3 sm:p-4 rounded-3xl bg-slate-900/90 border border-slate-800/90 min-h-[12rem] flex items-center overflow-x-auto gap-3 scrollbar-none snap-x scroll-smooth">
             {myHand.length === 0 ? (
               <div className="w-full text-center py-6 text-xs text-slate-500">
                 Nenhuma carta na mão.
@@ -1189,29 +1164,37 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
                     type="button"
                     disabled={!playable || submittingAction}
                     onClick={() => handlePlayCard(cardCode)}
-                    className={`relative shrink-0 w-24 h-36 sm:w-26 sm:h-38 rounded-2xl border-2 bg-gradient-to-br p-2.5 flex flex-col justify-between text-left select-none transition-all duration-200 outline-none ${
+                    className={`relative shrink-0 snap-center w-18 h-26 sm:w-24 sm:h-36 md:w-28 md:h-40 rounded-xl border-2 bg-gradient-to-br p-2.5 flex flex-col justify-between text-left select-none transition-all duration-200 outline-none ${
                       theme.bg
-                    } ${theme.border} ${
+                    } ${theme.border} ${theme.glow} ${
                       playable
-                        ? 'cursor-pointer hover:-translate-y-3 hover:scale-105 active:scale-95 shadow-xl ring-2 ring-emerald-400/90'
-                        : 'opacity-40 cursor-not-allowed filter grayscale-[35%]'
+                        ? 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95 shadow-2xl ring-3 ring-emerald-400/90 animate-pulse'
+                        : 'opacity-40 cursor-not-allowed filter grayscale-[40%]'
                     }`}
                   >
-                    {/* Glow pulsante em cartas jogáveis */}
-                    {playable && (
-                      <span className="absolute inset-0 rounded-2xl border-2 border-emerald-400/80 animate-pulse pointer-events-none" />
-                    )}
-
-                    <div className={`text-[9px] font-black uppercase tracking-wider ${theme.textColor}`}>
-                      {parsed.color !== 'wild' ? parsed.color : 'Coringa'}
+                    {/* Selo interno superior */}
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider ${theme.textColor}`}>
+                        {parsed.color !== 'wild' ? parsed.color[0].toUpperCase() : 'W'}
+                      </span>
+                      <span className={`text-[8px] sm:text-[10px] font-black font-mono ${theme.textColor}`}>
+                        {parsed.value}
+                      </span>
                     </div>
 
-                    <div className={`flex items-center justify-center my-auto ${theme.textColor}`}>
-                      {renderCardSymbol(parsed.value, true)}
+                    {/* Símbolo centralizado */}
+                    <div className={`flex items-center justify-center my-auto ${theme.textColor} text-base sm:text-xl drop-shadow-md`}>
+                      {renderCardSymbol(parsed.value, false)}
                     </div>
 
-                    <div className={`text-[9px] font-black uppercase tracking-wider text-right ${theme.textColor}`}>
-                      {parsed.value}
+                    {/* Selo interno inferior invertido */}
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[8px] sm:text-[10px] font-black font-mono ${theme.textColor}`}>
+                        {parsed.value}
+                      </span>
+                      <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider ${theme.textColor}`}>
+                        {parsed.color !== 'wild' ? parsed.color[0].toUpperCase() : 'DUO'}
+                      </span>
                     </div>
                   </button>
                 );
@@ -1221,8 +1204,8 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
         </section>
       )}
 
-      {/* 6. BOTÃO DE AÇÃO DO JOGADOR NO RODAPÉ (THUMB ZONE) */}
-      {isInitialized && !isFinished && isMyTurn && (
+      {/* 6. BOTÃO DE AÇÃO ESPECIAL DO JOGADOR NO RODAPÉ (APENAS PENALIDADE OU SEQUÊNCIA - O BOTÃO DE COMPRA FOI REMOVIDO E MOVIDO PARA A PILHA DE COMPRA) */}
+      {isInitialized && !isFinished && isMyTurn && (isPendingPenalty || isMySameNumberSeq) && (
         <div className="pt-1 flex flex-col gap-2">
           {isPendingPenalty ? (
             <button
@@ -1238,7 +1221,7 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
               )}
               <span>Aceitar Penalidade de Compra (+{pendingDraws} cartas)</span>
             </button>
-          ) : isMySameNumberSeq ? (
+          ) : (
             <button
               type="button"
               onClick={handleEndSequence}
@@ -1252,28 +1235,40 @@ export const CartaDuoGame: React.FC<CartaDuoGameProps> = ({
               )}
               <span>Encerrar Sequência e Passar Turno</span>
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleDrawCard}
-              disabled={submittingAction}
-              className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm shadow-xl shadow-blue-900/30 transition-all flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
-            >
-              {submittingAction ? (
-                <RefreshCw className="w-5 h-5 animate-spin" />
-              ) : (
-                <Plus className="w-5 h-5" />
-              )}
-              <span>Comprar Carta do Baralho (+1)</span>
-            </button>
           )}
           <p className="text-[11px] text-center text-slate-400">
             {isPendingPenalty
               ? 'Ao aceitar a penalidade, você compra o total acumulado e perde a sua vez.'
-              : isMySameNumberSeq
-              ? 'Encerre quando não quiser mais jogar cartas com o mesmo número.'
-              : 'Ao comprar do baralho, o turno avança automaticamente para o próximo jogador.'}
+              : 'Encerre quando não quiser mais jogar cartas com o mesmo número.'}
           </p>
+        </div>
+      )}
+
+      {/* 7. CONFIGURAÇÕES DA PARTIDA (MOVIDO PARA O FINAL DA PÁGINA DA PARTIDA) */}
+      {isInitialized && !isFinished && (
+        <div className="p-4 rounded-3xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-2 mt-4">
+          <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
+            <Compass className="w-3.5 h-3.5 text-blue-400" />
+            <span>Configurações da Partida</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1 text-[11px] text-slate-400">
+            <div className="p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+              <span>Acúmulo (+2/+4):</span>
+              <strong className="text-white block mt-0.5">{cumulativeDrawEnabled ? 'Ativado' : 'Desativado'}</strong>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+              <span>Mesmo número:</span>
+              <strong className="text-white block mt-0.5">{allowSameNumberEnabled ? 'Ativado' : 'Desativado'}</strong>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+              <span>Última Carta:</span>
+              <strong className="text-amber-300 block mt-0.5">Declaração Ativa</strong>
+            </div>
+            <div className="p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+              <span>Direção do Turno:</span>
+              <strong className="text-white block mt-0.5">{state?.direction === 1 ? 'Horário ➡️' : 'Anti-horário ⬅️'}</strong>
+            </div>
+          </div>
         </div>
       )}
 

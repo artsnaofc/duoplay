@@ -355,28 +355,28 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
                   <div className="relative">
                     <PlayerAvatar
-                      avatarUrl={publicProfile.avatarUrl}
-                      displayName={publicProfile.displayName}
+                      avatarUrl={publicProfile?.avatarUrl}
+                      displayName={publicProfile?.displayName}
                       size="xl"
                     />
                     <div className="absolute -bottom-2 -right-1 px-2 py-0.5 rounded-full bg-purple-600 text-[10px] font-black text-white border-2 border-slate-900 shadow">
-                      NV {publicProfile.stats.level || 1}
+                      NV {publicProfile?.stats?.level || 1}
                     </div>
                   </div>
 
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                      {publicProfile.displayName}
+                      {publicProfile?.displayName || 'Competidor'}
                     </h1>
                     <span className="text-sm text-purple-300/80 block font-mono">
-                      @{publicProfile.username}
+                      @{publicProfile?.username || 'competidor'}
                     </span>
 
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2 text-xs text-slate-400">
                       <span className="flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-lg">
                         <Calendar className="w-3.5 h-3.5 text-slate-500" />
                         Membro desde{' '}
-                        {new Date(publicProfile.createdAt).toLocaleDateString('pt-BR', {
+                        {new Date(publicProfile?.createdAt || Date.now()).toLocaleDateString('pt-BR', {
                           month: 'short',
                           year: 'numeric',
                         })}
@@ -481,7 +481,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       Partidas
                     </span>
                     <span className="text-xl font-black text-white mt-0.5 block">
-                      {publicProfile.stats.totalMatches}
+                      {publicProfile?.stats?.totalMatches || 0}
                     </span>
                   </div>
 
@@ -490,7 +490,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       Vitórias
                     </span>
                     <span className="text-xl font-black text-emerald-400 mt-0.5 block">
-                      {publicProfile.stats.totalWins}
+                      {publicProfile?.stats?.totalWins || 0}
                     </span>
                   </div>
 
@@ -499,7 +499,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       Taxa de Vitória
                     </span>
                     <span className="text-xl font-black text-blue-400 mt-0.5 block">
-                      {publicProfile.stats.winRate}%
+                      {publicProfile?.stats?.winRate || 0}%
                     </span>
                   </div>
 
@@ -508,7 +508,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                       Nível Geral
                     </span>
                     <span className="text-xl font-black text-amber-400 mt-0.5 block">
-                      {publicProfile.stats.level || 1}
+                      {publicProfile?.stats?.level || 1}
                     </span>
                   </div>
                 </div>
