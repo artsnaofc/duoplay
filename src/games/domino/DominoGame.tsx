@@ -255,6 +255,44 @@ export const DominoGame: React.FC<DominoGameProps> = ({
   const leftEnd = board.leftEnd;
   const rightEnd = board.rightEnd;
 
+  // Referência e estado para auto-scroll e destaque da peça jogada recentemente
+  const boardScrollRef = useRef<HTMLDivElement>(null);
+  const [highlightedTileId, setHighlightedTileId] = useState<string | null>(null);
+
+  // Efeito para mover o tabuleiro para a peça jogada e destacá-la a cada turno/ação
+  useEffect(() => {
+    if (state?.lastAction?.type === 'play') {
+      const lastAction = state.lastAction;
+      let targetPlacedTile: DominoPlacedTile | undefined;
+      if (lastAction.side === 'left') {
+        targetPlacedTile = board.tiles[0];
+      } else {
+        targetPlacedTile = board.tiles[board.tiles.length - 1];
+      }
+
+      if (targetPlacedTile) {
+        setHighlightedTileId(targetPlacedTile.id);
+        if (boardScrollRef.current) {
+          const el = boardScrollRef.current.querySelector(`[data-tile-id="${targetPlacedTile.id}"]`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+          } else {
+            if (lastAction.side === 'left') {
+              boardScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+              boardScrollRef.current.scrollTo({ left: boardScrollRef.current.scrollWidth, behavior: 'smooth' });
+            }
+          }
+        }
+
+        const timer = setTimeout(() => {
+          setHighlightedTileId(null);
+        }, 3500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [state?.lastAction, board.tiles]);
+
   // Mão visível do jogador (suporta tanto DominoClientGameState projetado quanto DominoGameState)
   const myHand: DominoTile[] = useMemo(() => {
     if (!state) return [];
@@ -691,7 +729,10 @@ export const DominoGame: React.FC<DominoGameProps> = ({
             </p>
           </div>
         ) : (
-          <div className="w-full overflow-x-auto flex items-center justify-start sm:justify-center gap-1.5 py-8 px-4 scrollbar-thin">
+          <div
+            ref={boardScrollRef}
+            className="w-full overflow-x-auto flex items-center justify-start sm:justify-center gap-1.5 py-8 px-4 scrollbar-thin scroll-smooth"
+          >
             {/* Botão de Encaixe na Ponta Esquerda (visível se tiver peça selecionada) */}
             {selectedTile && isSelectedTileCanLeft && (
               <button
@@ -705,16 +746,27 @@ export const DominoGame: React.FC<DominoGameProps> = ({
               </button>
             )}
 
-            {/* Peças dispostas na mesa */}
-            {board.tiles.map((placed, i) => (
-              <div key={placed.id || i} className="shrink-0 transform hover:scale-105 transition-transform">
-                <DominoTileView
-                  tile={placed.tile}
-                  isVertical={placed.tile[0] === placed.tile[1]} // Duplas ficam em pé na mesa tradicional!
-                  size="md"
-                />
-              </div>
-            ))}
+            {/* Peças dispostas na mesa com destaque na peça jogada recentemente */}
+            {board.tiles.map((placed, i) => {
+              const isHighlighted = highlightedTileId === placed.id;
+              return (
+                <div
+                  key={placed.id || i}
+                  data-tile-id={placed.id}
+                  className={`shrink-0 transform transition-all duration-300 ${
+                    isHighlighted
+                      ? 'scale-110 z-30 animate-bounce ring-4 ring-amber-400 bg-amber-200/60 rounded-xl p-1 shadow-[0_0_35px_rgba(245,158,11,0.9)]'
+                      : 'hover:scale-105'
+                  }`}
+                >
+                  <DominoTileView
+                    tile={placed.tile}
+                    isVertical={placed.tile[0] === placed.tile[1]} // Duplas ficam em pé na mesa tradicional!
+                    size="md"
+                  />
+                </div>
+              );
+            })}
 
             {/* Botão de Encaixe na Ponta Direita (visível se tiver peça selecionada) */}
             {selectedTile && isSelectedTileCanRight && (
